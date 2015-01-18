@@ -1,0 +1,2329 @@
+MPASM  5.39                   SOITTORASIA.ASM   1-18-2015  17:09:45         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;;;;;;; Description ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00002 ; Harjoitus 1
+                      00003 ; 
+                      00004 ;  1. 5v voltage for sensor.
+                      00005 ;
+                      00006 ; 
+                      00007 ; 
+                      00008 ;    
+                      00009 ; 
+                      00010 ;       
+                      00011 
+                      00012 ;;;;;;; Program hierarchy ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00013 ;
+                      00014 ; Mainline
+                      00015 ;
+                      00016 
+                      00017 ;;;;;;; Assembler directives ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00018 
+                      00019         list  P=PIC18F452, F=INHX32, C=160, N=0, ST=OFF, MM=OFF, R=DEC, X=ON
+                      00020         #include P18F452.inc
+                      00001         LIST
+                      00002 
+                      00003 ;==========================================================================
+                      00004 ;  MPASM PIC18F452 processor include
+                      00005 ; 
+                      00006 ;  (c) Copyright 1999-2010 Microchip Technology, All rights reserved
+                      00007 ;==========================================================================
+                      00008 
+                      01251         LIST
+Warning[230]: __CONFIG has been deprecated for PIC18 devices.  Use directive CONFIG.
+300000 FAFF           00021         __CONFIG  _CONFIG1H, _HS_OSC_1H  ;HS oscillator
+Warning[230]: __CONFIG has been deprecated for PIC18 devices.  Use directive CONFIG.
+                      00022         __CONFIG  _CONFIG2L, _PWRT_ON_2L & _BOR_ON_2L & _BORV_42_2L  ;Reset
+Warning[230]: __CONFIG has been deprecated for PIC18 devices.  Use directive CONFIG.
+300002 FEF6           00023         __CONFIG  _CONFIG2H, _WDT_OFF_2H  ;Watchdog timer disabled
+Warning[230]: __CONFIG has been deprecated for PIC18 devices.  Use directive CONFIG.
+300004 FFFF           00024         __CONFIG  _CONFIG3H, _CCP2MX_ON_3H  ;CCP2 to RC1 (rather than to RB3)
+Warning[230]: __CONFIG has been deprecated for PIC18 devices.  Use directive CONFIG.
+300006 FFFB           00025         __CONFIG  _CONFIG4L, _LVP_OFF_4L  ;RB5 enabled for I/O
+                      00026         errorlevel -314, -315          ;Ignore lfsr messages
+                      00027 
+                      00028 ;;;;;;; Variables ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00029 
+                      00030         cblock  0x000                  ; Beginning of Access RAM
+  00000000            00031         COUNT                          ; Counter available as local to subroutines
+  00000001            00032         ALIVECNT                       ; Counter for blinking "Alive" LED (D2)
+  00000002            00033         DELRPG                         ; Used DELRPG to let the programmer know whether
+                      00034                                        ;  or not the RPG moved and at which direction 
+                      00035                                        ;  (-1 for left or +1 for right).
+  00000003            00036         OLDPORTD                       ; Holds the old value of PortD to compare with
+                      00037                                        ;  the new value. Used in RPG.
+  00000004            00038         PBSTATE                        ; Byte that holds all necessary bit values to 
+                      00039                                        ;  make SW3 function.  Set in PButton subroutine.
+  00000005            00040         PBCOUNT                        ; Used in PButton subroutine.  If it's less than
+                      00041                                        ;  PBthresh, then ISC is set.  Otherwise, ISA is set.
+                      00042                                        ;  This lets PButton know if it's a short or long push.
+  00000006            00043         POTVALUE                       ; Holds the current value of the POT.
+  00000007            00044         POTVALUECOMP                   ; Holds the complemented (0xff-POTVALUE) value of POTVALUE.
+  00000008            00045         TEMPSTR:6                      ; String that hold the current temperature to be displayed on the LCD.
+  0000000E            00046         HEXSTR:4                       ; String used to display the hex values located
+                      00047                                        ;  on the right side of the LCD (output of the POT and the DAC)
+  00000012            00048         BYTE                           ; Temporary variable used for anything.
+  00000013            00049         SPIRECEIVE                     ; Not used in this program, but if something
+                      00050                                        ;  was to be sent back to the SPI, it would 
+                      00051                                        ;  be saved in this variable.
+  00000014            00052                 SPIDATA                                            ;    !       
+  00000015            00053                 VOLT                                       
+  00000016            00054         RPGCNT                         ; Used internally for the RPG subroutine.
+  00000017            00055         CNT_TITLE                      ; Counter for the titles.
+  00000018            00056         VALUE                          ; Variable used by RPG.
+  00000019            00057         STORETEMP                      ; For storing the temperature
+                      00058         endc
+                      00059 
+                      00060 #include c:\math18\mathvars.inc
+                      00001 ;;;;; MATHVARS.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ;   Memory: Data 29
+                      00004 ;
+                      00005 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00006 
+                      00007         cblock
+  0000001A            00008         AEXP                    ;AARG
+  0000001B            00009         AARGB0
+  0000001C            00010         AARGB1
+  0000001D            00011         AARGB2
+  0000001E            00012         AARGB3
+  0000001F            00013         AARGB4
+  00000020            00014         AARGB5
+  00000021            00015         AARGB6
+  00000022            00016         AARGB7
+                      00017 
+  00000023            00018         BEXP                    ;BARG
+  00000024            00019         BARGB0
+  00000025            00020         BARGB1
+  00000026            00021         BARGB2
+  00000027            00022         BARGB3
+                      00023 
+  00000028            00024         CEXP
+  00000029            00025         CARGB0                  ;CARG
+  0000002A            00026         CARGB1
+  0000002B            00027         CARGB2
+  0000002C            00028         CARGB3
+                      00029 
+  0000002D            00030         ZARGB0                  ;ZARG
+  0000002E            00031         ZARGB1
+  0000002F            00032         ZARGB2
+  00000030            00033         ZARGB3
+                      00034 
+  00000031            00035         TEMPB0
+  00000032            00036         TEMPB1
+  00000033            00037         TEMPB2
+  00000034            00038         TEMPB3
+                      00039 
+  00000035            00040         SIGN
+  00000036            00041         FPFLAGS
+                      00042         endc
+                      00043 
+  0000001F            00044 REMB0  equ  AARGB4
+  00000020            00045 REMB1  equ  AARGB5
+  00000021            00046 REMB2  equ  AARGB6
+  00000022            00047 REMB3  equ  AARGB7
+  00000031            00048 TEMP  equ  TEMPB0
+                      00049 
+                      00050 
+                      00210         LIST
+                      00061 
+                      00062 ;;;;;;; Macro definitions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00063 
+                      00064 ; These are the binary variables used for the PButton and RPG subroutines.
+  00000000            00065 ISC     equ 0                          ; Initiate screen change for long press.
+  00000001            00066 ISA     equ 1                          ; Initiate secondary action for short press.
+  00000002            00067 PDONE   equ 2                          ; Pushbutton action has been taken.
+  00000003            00068 OLDPB   equ 3                          ; Old state of pushbutton.
+  00000004            00069 NEWPB   equ 4                          ; New state of pushbutton.
+  0000001E            00070 PBthres equ 30                         ; Pushbutton threshold ofr a long press.
+  00000006            00071 RGPTresh equ 6                         ; RPG treshold for fast turns.
+                      00072 
+                      00073 
+                      00074 ; Lets the programmer store a literal value in a RAM location directly.
+                      00075 ;
+                      00076 
+                      00077 MOVLF   macro  literal,dest
+                      00078         movlw  literal
+                      00079         movwf  dest
+                      00080         endm
+                      00081 
+                      00082 ; Used to point TBLPTRH to a constant string (stored in program memory) so that 
+                      00083 ; it can be displayed on the LCD.
+                      00084 ;
+                      00085 
+                      00086 POINT   macro  stringname
+                      00087         MOVLF  high stringname, TBLPTRH
+                      00088         MOVLF  low stringname,  TBLPTRL
+                      00089         endm
+                      00090 
+                      00091 ;;;;;;; Vectors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00092 
+000000                00093         org   0x0000                   ; Reset vector.
+000000 0000           00094         nop 
+000002 EF0E F000      00095         goto  Mainline
+                      00096 
+000008                00097         org   0x0008                   ; High priority interrupt vector.
+000008 EF04 F000      00098         goto  $                        ; If interrupt is generated, go into this infinite loop.
+                      00099 
+000018                00100         org   0x0018                   ; Low priority interrupt vector.
+000018 EF0C F000      00101         goto  $                        ; If interrupt is generated, go into this infinite loop.
+                      00102 
+                      00103 ;;;;;;; Mainline program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00104 
+00001C                00105 Mainline
+00001C D802           00106         rcall  Initial                 ;Initialize everything.
+                      00107                 
+                      00108         ;LOOP_
+00001E D839           00109                 rcall SetDAC
+000020 D940           00110                 rcall ADC_muunnos
+                      00111                 
+                      00112                 
+                      00113 
+                      00114 ;;;;;;; Initial subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00115 ;
+                      00116 ; This subroutine performs all initializations of variables and registers.
+                      00117 
+000022                00118 Initial
+                      00119         MOVLF B'01000000', ADCON1      ; Enable PORTA & PORTE digital I/O pins for the A/D converter.
+000022 0E40               M         movlw  B'01000000'
+000024 6EC1               M         movwf  ADCON1
+                      00120         MOVLF B'01111001', ADCON0      ; Sets up the A/D converter for the POT.
+000026 0E79               M         movlw  B'01111001'
+000028 6EC2               M         movwf  ADCON0
+                      00121         MOVLF B'11100001', TRISA       ; Set I/O for PORTA. '1' is input while '0' is output.
+00002A 0EE1               M         movlw  B'11100001'
+00002C 6E92               M         movwf  TRISA
+                      00122         MOVLF B'11011100', TRISB       ; Set I/O for PORTB.
+00002E 0EDC               M         movlw  B'11011100'
+000030 6E93               M         movwf  TRISB
+                      00123         MOVLF B'00000000', TRISC       ; Set I/0 for PORTC. DAC-pinnit 0,3,5 pakko olla output tilassa
+000032 0E00               M         movlw  B'00000000'
+000034 6E94               M         movwf  TRISC
+                      00124         MOVLF B'00001111', TRISD       ; Set I/0 for PORTD.
+000036 0E0F               M         movlw  B'00001111'
+000038 6E95               M         movwf  TRISD
+                      00125         MOVLF B'00000100', TRISE       ; Set I/0 for PORTE.
+00003A 0E04               M         movlw  B'00000100'
+00003C 6E96               M         movwf  TRISE
+                      00126         MOVLF B'00010000', PORTA       ; Turn off all four LEDs driven from PORTA.
+00003E 0E10               M         movlw  B'00010000'
+000040 6E80               M         movwf  PORTA
+                      00127         MOVLF B'00100000', SSPCON1     ; Sets up the SPI interface for the DAC
+000042 0E20               M         movlw  B'00100000'
+000044 6EC6               M         movwf  SSPCON1
+                      00128         MOVLF B'11000000', SSPSTAT     ;  to use with a 2.5 MHz clock.
+000046 0EC0               M         movlw  B'11000000'
+000048 6EC7               M         movwf  SSPSTAT
+                      00129 
+                      00130                                        ; This sets up Timer1 and CCP1.
+                      00131         MOVLF B'00001000', T3CON       ; Sets up so that T1 is used with CCP1.
+00004A 0E08               M         movlw  B'00001000'
+00004C 6EB1               M         movwf  T3CON
+                      00132         MOVLF B'10000001', T1CON       ; continue setting up T1 to CCP1.
+00004E 0E81               M         movlw  B'10000001'
+000050 6ECD               M         movwf  T1CON
+                      00133         MOVLF B'00001011', CCP1CON     ; Set up to trigger special event so that PIR1, CCP1IF will be set.
+000052 0E0B               M         movlw  B'00001011'
+000054 6EBD               M         movwf  CCP1CON
+                      00134         MOVLF B'01100001', CCPR1H      ; Set the comparator to 25,000.
+000056 0E61               M         movlw  B'01100001'
+000058 6EBF               M         movwf  CCPR1H
+                      00135         MOVLF B'10101000', CCPR1L       
+00005A 0EA8               M         movlw  B'10101000'
+00005C 6EBE               M         movwf  CCPR1L
+                      00136 
+                      00137                                        ; Initialize variables for RPG and PButton subroutines.
+00005E CF83 F003      00138         movff PORTD, OLDPORTD          ; Initialize "old" value for RPG.
+000062 6A16           00139         clrf RPGCNT                    ; Initialize the RPG counter.
+                      00140 
+                      00141         MOVLF B'00001000', PBSTATE     ; Initialize pushbutton states.
+000064 0E08               M         movlw  B'00001000'
+000066 6E04               M         movwf  PBSTATE
+000068 6A05           00142         clrf PBCOUNT
+00006A 6A18           00143         clrf VALUE
+                      00144                                        ; Set up the characters that will not ever change
+                      00145         MOVLF 0xC0, TEMPSTR            ; Sets the position of TEMPSTR to the lower left hand corner.
+00006C 0EC0               M         movlw  0xC0
+00006E 6E08               M         movwf  TEMPSTR
+                      00146         MOVLF 0xDF, TEMPSTR+3          ; Displays the degree symbol.
+000070 0EDF               M         movlw  0xDF
+000072 6E0B               M         movwf  TEMPSTR+3
+                      00147         MOVLF A'C', TEMPSTR+4          ; Displays 'C' for the temperature.
+000074 0E43               M         movlw  A'C'
+000076 6E0C               M         movwf  TEMPSTR+4
+                      00148         MOVLF 0x00, TEMPSTR+5          ; Terminating byte for a string.
+000078 0E00               M         movlw  0x00
+00007A 6E0D               M         movwf  TEMPSTR+5
+                      00149 
+                      00150         MOVLF 0x00, HEXSTR+3           ; Terminating byte for HEXSTR will never change.
+00007C 0E00               M         movlw  0x00
+00007E 6E11               M         movwf  HEXSTR+3
+                      00151 
+000080 D80E           00152         rcall InitLCD                  ; Initialize LCD.
+                      00153         POINT NAME                     ; Display name on the LCD.
+                          M         MOVLF  high NAME,       TBLPTRH
+000082 0E02               M         movlw  high NAME
+000084 6EF7               M         movwf  TBLPTRH
+                          M         MOVLF  low NAME,        TBLPTRL
+000086 0EFA               M         movlw  low NAME
+000088 6EF6               M         movwf  TBLPTRL
+00008A D827           00154         rcall DisplayC          
+                      00155 
+                      00156         MOVLF D'1', CNT_TITLE          ; Initialize CNT_TITLE
+00008C 0E01               M         movlw  D'1'
+00008E 6E17               M         movwf  CNT_TITLE
+                      00157         
+000090 0012           00158         return
+                      00159 ;;;;;;; SetDAC subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00160 ;
+                      00161 ; 5V jÃ¤nnite sensorille
+                      00162 ; Asetetaan DAC kanava A (0x21) arvoon 5V (0xFF)
+000092                00163 SetDAC
+                      00164                 MOVLF 0x21, SPIDATA             ;lÃ¤hetetÃ¤Ã¤n kanavan osoite
+000092 0E21               M         movlw  0x21
+000094 6E14               M         movwf  SPIDATA
+000096 D8FC           00165                 rcall SPItransfer
+                      00166                 MOVLF 0xFF, SPIDATA
+000098 0EFF               M         movlw  0xFF
+00009A 6E14               M         movwf  SPIDATA
+00009C D8F9           00167                 rcall SPItransfer
+                      00168                 
+                      00169                 
+                      00170 ;;;;;;; InitLCD subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00171 ;
+                      00172 ; Initialize the Optrex 8x2 character LCD.
+                      00173 ; First wait for 0.1 second, to get past display's power-on reset time.
+                      00174 
+00009E                00175 InitLCD
+                      00176         MOVLF  10,COUNT                ; Wait 0.1 second.
+00009E 0E0A               M         movlw  10
+0000A0 6E00               M         movwf  COUNT
+                      00177         ;REPEAT_
+0000A2                00178 L2
+0000A2 D923           00179           rcall  LoopTime              ; Call LoopTime 10 times.
+0000A4 0600           00180           decf   COUNT,F
+                      00181         ;UNTIL_  .Z.
+0000A6 E1FD           00182         bnz     L2
+0000A8                00183 RL2
+                      00184 
+0000A8 9084           00185         bcf    PORTE,0                 ; RS=0 for command.
+                      00186         POINT  LCDstr                  ; Set up table pointer to initialization string.
+                          M         MOVLF  high LCDstr,     TBLPTRH
+0000AA 0E02               M         movlw  high LCDstr
+0000AC 6EF7               M         movwf  TBLPTRH
+                          M         MOVLF  low LCDstr,      TBLPTRL
+0000AE 0EF2               M         movlw  low LCDstr
+0000B0 6EF6               M         movwf  TBLPTRL
+0000B2 0008           00187         tblrd*                         ; Get first byte from string into TABLAT.
+                      00188         ;REPEAT_
+0000B4                00189 L3
+0000B4 8284           00190           bsf    PORTE,1               ; Drive E high.
+0000B6 CFF5 FF83      00191           movff  TABLAT,PORTD          ; Send upper nibble.
+0000BA 9284           00192           bcf    PORTE,1               ; Drive E low so LCD will process input.
+0000BC D916           00193           rcall  LoopTime              ; Wait ten milliseconds.
+0000BE 8284           00194           bsf    PORTE,1               ; Drive E high.
+0000C0 38F5           00195           swapf  TABLAT,W              ; Swap nibbles.
+0000C2 6E83           00196           movwf  PORTD                 ; Send lower nibble.
+0000C4 9284           00197           bcf    PORTE,1               ; Drive E low so LCD will process input.
+0000C6 D911           00198           rcall  LoopTime              ; Wait ten milliseconds.
+0000C8 000B           00199           tblrd+*                      ; Increment pointer and get next byte.
+0000CA 52F5           00200           movf   TABLAT,F              ; Is it zero?
+                      00201         ;UNTIL_  .Z.
+0000CC E1F3           00202         bnz     L3
+0000CE                00203 RL3
+0000CE 0012           00204         return
+                      00205 
+                      00206 ;;;;;;; T40 subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00207 ;
+                      00208 ; Pause for 40 microseconds  or 40/0.4 = 100 clock cycles.
+                      00209 ; Assumes 10/4 = 2.5 MHz internal clock rate.
+                      00210 
+0000D0                00211 T40
+0000D0 0E21           00212         movlw  100/3                   ; Each REPEAT loop takes 3 cycles.
+0000D2 6E00           00213         movwf  COUNT
+                      00214         ;REPEAT_
+0000D4                00215 L4
+0000D4 0600           00216           decf  COUNT,F
+                      00217         ;UNTIL_  .Z.
+0000D6 E1FE           00218         bnz     L4
+0000D8                00219 RL4
+0000D8 0012           00220         return
+                      00221 
+                      00222 
+                      00223 ;;;;;;;;DisplayC subroutine;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00224 ;
+                      00225 ; This subroutine is called with TBLPTR containing the address of a constant
+                      00226 ; display string.  It sends the bytes of the string to the LCD.  The first
+                      00227 ; byte sets the cursor position.  The remaining bytes are displayed, beginning
+                      00228 ; at that position.
+                      00229 ; This subroutine expects a normal one-byte cursor-positioning code, 0xhh, or
+                      00230 ; an occasionally used two-byte cursor-positioning code of the form 0x00hh.
+                      00231 
+0000DA                00232 DisplayC
+0000DA 9084           00233         bcf  PORTE,0                   ; Drive RS pin low for cursor-positioning code.
+0000DC 0008           00234         tblrd*                         ; Get byte from string into TABLAT.
+0000DE 52F5           00235         movf TABLAT,F                  ; Check for leading zero byte.
+                      00236         ;IF_  .Z.
+0000E0 E101           00237         bnz     L5
+0000E2 000B           00238           tblrd+*                      ; If zero, get next byte.
+                      00239         ;ENDIF_
+0000E4                00240 L5
+                      00241         ;REPEAT_
+0000E4                00242 L6
+0000E4 8284           00243           bsf   PORTE,1                ; Drive E pin high.
+0000E6 CFF5 FF83      00244           movff TABLAT,PORTD           ; Send upper nibble.
+0000EA 9284           00245           bcf   PORTE,1                ; Drive E pin low so LCD will accept nibble.
+0000EC 8284           00246           bsf   PORTE,1                ; Drive E pin high again.
+0000EE 38F5           00247           swapf TABLAT,W               ; Swap nibbles.
+0000F0 6E83           00248           movwf PORTD                  ; Write lower nibble.
+0000F2 9284           00249           bcf   PORTE,1                ; Drive E pin low so LCD will process byte.
+0000F4 DFED           00250           rcall T40                    ; Wait 40 usec.
+0000F6 8084           00251           bsf   PORTE,0                ; Drive RS pin high for displayable characters.
+0000F8 000B           00252           tblrd+*                      ; Increment pointer, then get next byte.
+0000FA 52F5           00253           movf  TABLAT,F               ; Is it zero?
+                      00254         ;UNTIL_  .Z.
+0000FC E1F3           00255         bnz     L6
+0000FE                00256 RL6
+0000FE 0012           00257         return
+                      00258 
+                      00259 ;;;;;;; DisplayV subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00260 ;
+                      00261 ; This subroutine is called with FSR0 containing the address of a variable
+                      00262 ; display string.  It sends the bytes of the string to the LCD.  The first
+                      00263 ; byte sets the cursor position.  The remaining bytes are displayed, beginning
+                      00264 ; at that position.
+                      00265         
+000100                00266 DisplayV
+000100 9084           00267         bcf  PORTE,0                   ; Drive RS pin low for cursor positioning code.
+                      00268         ;REPEAT_
+000102                00269 L7
+000102 8284           00270           bsf   PORTE,1                ; Drive E pin high.
+000104 CFEF FF83      00271           movff INDF0,PORTD            ; Send upper nibble.
+000108 9284           00272           bcf   PORTE,1                ; Drive E pin low so LCD will accept nibble.
+00010A 8284           00273           bsf   PORTE,1                ; Drive E pin high again.
+00010C 38EF           00274           swapf INDF0,W                ; Swap nibbles.
+00010E 6E83           00275           movwf PORTD                  ; Write lower nibble.
+000110 9284           00276           bcf   PORTE,1                ; Drive E pin low so LCD will process byte.
+000112 DFDE           00277           rcall T40                    ; Wait 40 usec.
+000114 8084           00278           bsf   PORTE,0                ; Drive RS pin high for displayable characters.
+000116 50EC           00279           movf  PREINC0,W              ; Increment pointer, then get next byte.
+                      00280         ;UNTIL_  .Z.                   ; Is it zero?
+000118 E1F4           00281         bnz     L7
+00011A                00282 RL7
+00011A 0012           00283         return
+                      00284         
+                      00285 ;;;;;;; RPG subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00286 ;
+                      00287 ; This subroutine decyphers RPG changes into values of DELRPG of 0, +1, or -1.
+                      00288 ; DELRPG = +1 for CW change, 0 for no change, and -1 for CCW change.
+                      00289 ; If 2 changes occur within (RPGTreshold * 10 ms), then multiply the values by 
+                      00290 ; 8 (3 times shift left).
+                      00291 
+00011C                00292 RPG
+00011C 5016           00293         movf   RPGCNT,w                ; Copy RPGCNT to W.
+00011E A4D8           00294         btfss  STATUS, Z               ; skip if zero
+000120 0616           00295         decf   RPGCNT                  ; if not zero, decrement
+000122 9680           00296         bcf    PORTA,RA3
+000124 6A02           00297         clrf   DELRPG                  ; Clear for "no change" return value.
+000126 5083           00298         movf   PORTD,W                 ; Copy PORTD into W.
+000128 6E31           00299         movwf  TEMP                    ;  and TEMP.
+00012A 1803           00300         xorwf  OLDPORTD,W              ; Any change?
+00012C 0B03           00301         andlw  B'00000011'             ; If not, set the Z flag.
+                      00302         ;IF_  .NZ.                     ; If the two bits have changed then...
+00012E E017           00303         bz      L8
+000130 3003           00304           rrcf OLDPORTD,W              ; Form what a CCW change would produce.
+                      00305           ;IF_  .C.                    ; Make new bit 1 = complement of old bit 0.
+000132 E302           00306           bnc   L9
+000134 92E8           00307             bcf  WREG,1
+                      00308           ;ELSE_
+000136 D001           00309           bra   L10
+000138                00310 L9
+000138 82E8           00311             bsf  WREG,1
+                      00312           ;ENDIF_
+00013A                00313 L10
+00013A 1831           00314           xorwf  TEMP,W                ; Did the RPG actually change to this output?
+00013C 0B03           00315           andlw  B'00000011'
+                      00316           ;IF_  .Z.                    ; If so, then change  DELRPG to -1 for CCW.
+00013E E102           00317           bnz   L11
+000140 0602           00318             decf DELRPG,F
+                      00319           ;ELSE_                       ; Otherwise, change DELRPG to  +1 for CW.
+000142 D001           00320           bra   L12
+000144                00321 L11
+000144 2A02           00322             incf DELRPG,F
+                      00323           ;ENDIF_
+000146                00324 L12
+                      00325         ;ENDIF_
+000146 5016           00326         movf   RPGCNT,w                ; Copy RPGCNT to W.
+000148 B4D8           00327         btfsc  STATUS, Z               ; skip if not zero
+00014A D007           00328         bra    CNTUPDATE               ;        
+00014C 8680           00329         bsf    PORTA,RA3               ; Flash D4, for a fast turn of the RPG.
+00014E 90D8           00330         bcf    STATUS,C                ; Shift value 3 times to left = multiply by 8
+000150 3602           00331         rlcf   DELRPG                  ; Carry is forced to 0.
+000152 90D8           00332         bcf    STATUS,C
+000154 3602           00333         rlcf   DELRPG 
+000156 90D8           00334         bcf    STATUS,C
+000158 3602           00335         rlcf   DELRPG                  ; *****
+                      00336 
+00015A                00337 CNTUPDATE
+                      00338         MOVLF   RGPTresh, RPGCNT       ; set RGPCNT to treshold         
+00015A 0E06               M         movlw  RGPTresh
+00015C 6E16               M         movwf  RPGCNT
+00015E                00339 L8
+00015E C031 F003      00340         movff  TEMP,OLDPORTD           ; Save PORTD as OLDPORTD for ten ms from now.
+000162 0012           00341         return
+                      00342 
+                      00343 ;;;;;;;;;;;;;;;;;; Pbutton subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00344 ;
+                      00345 ; This subroutine sorts out long and short pushbuttons presses into two outputs:
+                      00346 ;       ISC=1:   for slow press.
+                      00347 ;       ISA=1:   for fast press.
+                      00348 ;       PDONE=1: One of the above actions has occurred for this press.
+                      00349 
+000164                00350 Pbutton
+000164 9004           00351         bcf PBSTATE,ISC                ; Clear initiate screen change bit.
+000166 9204           00352         bcf PBSTATE,ISA                ; Clear initiate secondary action bit.
+                      00353         
+                      00354         ;IF_ PORTD,RD3 == 1            ; Copy pushbutton state to NEWPB.
+000168 A683           00355         btfss PORTD,RD3
+00016A D002           00356         bra     L13
+00016C 8804           00357           bsf PBSTATE, NEWPB
+                      00358         ;ELSE_
+00016E D001           00359         bra     L14
+000170                00360 L13
+000170 9804           00361           bcf PBSTATE, NEWPB
+                      00362         ;ENDIF_
+000172                00363 L14
+                      00364         
+                      00365         ;IF_ PBSTATE,OLDPB == 1        ; Look for leading edge. 
+000172 A604           00366         btfss PBSTATE,OLDPB
+000174 D004           00367         bra     L15
+                      00368           ;IF_ PBSTATE,NEWPB == 0      ;  (OLDPB = 1, NEWPB = 0).
+000176 B804           00369           btfsc PBSTATE,NEWPB
+000178 D002           00370           bra   L16
+                      00371             MOVLF PBthres, PBCOUNT     ; Start counter.
+00017A 0E1E               M         movlw  PBthres
+00017C 6E05               M         movwf  PBCOUNT
+                      00372           ;ENDIF_
+00017E                00373 L16
+                      00374         ;ENDIF_
+00017E                00375 L15
+                      00376 
+                      00377         ;IF_ PBSTATE,NEWPB == 0        ; Pushbutton is still pressed.
+00017E B804           00378         btfsc PBSTATE,NEWPB
+000180 D007           00379         bra     L17
+000182 5205           00380           movf PBCOUNT, F
+                      00381           ;IF_ .Z.                     ; and counter has passed threshold.
+000184 E104           00382           bnz   L18
+                      00383             ;IF_ PBSTATE,PDONE == 0    ; and no action has yet been taken.
+000186 B404           00384             btfsc PBSTATE,PDONE
+000188 D002           00385             bra L19
+00018A 8004           00386               bsf PBSTATE,ISC          ; Set ISC = 1 to indicate change in button.
+00018C 8404           00387               bsf PBSTATE,PDONE        ; Done with pulse.
+                      00388             ;ENDIF_
+00018E                00389 L19
+                      00390           ;ENDIF_
+00018E                00391 L18
+                      00392         ;ELSE_                         ; Pushbutton has been release.
+00018E D001           00393         bra     L20
+000190                00394 L17
+000190 9404           00395           bcf PBSTATE,PDONE            ; so clear PDONE.
+                      00396         ;ENDIF_
+000192                00397 L20
+                      00398 
+                      00399         ;IF_ PBSTATE,OLDPB == 0        ; Look for trailing edge.
+000192 B604           00400         btfsc PBSTATE,OLDPB
+000194 D007           00401         bra     L21
+                      00402           ;IF_ PBSTATE,NEWPB == 1      ; (OLDPB = 0, NEWPB = 1).
+000196 A804           00403           btfss PBSTATE,NEWPB
+000198 D005           00404           bra   L22
+00019A 5205           00405             movf PBCOUNT, F
+                      00406             ;IF_ .NZ.                  ; Fast pulse.
+00019C E001           00407             bz  L23
+00019E 8204           00408               bsf PBSTATE,ISA          ; Initiate secondary action.
+                      00409             ;ENDIF_
+0001A0                00410 L23
+0001A0 9404           00411             bcf PBSTATE,PDONE          ; Done with pulse.
+0001A2 6A05           00412             clrf PBCOUNT               ; Finish counting.
+                      00413           ;ENDIF_
+0001A4                00414 L22
+                      00415         ;ENDIF_
+0001A4                00416 L21
+                      00417 
+0001A4 5205           00418         movf PBCOUNT, F                ; Has counter reached zero?
+                      00419         ;IF_ .NZ.                      ; If not, then decrement it.
+0001A6 E001           00420         bz      L24
+0001A8 0605           00421           decf PBCOUNT, F
+                      00422         ;ENDIF_
+0001AA                00423 L24
+                      00424 
+                      00425         ;IF_ PBSTATE,NEWPB == 1        ; Copy NEWPB to OLDPB.
+0001AA A804           00426         btfss PBSTATE,NEWPB
+0001AC D002           00427         bra     L25
+0001AE 8604           00428           bsf PBSTATE,OLDPB
+                      00429         ;ELSE_
+0001B0 D001           00430         bra     L26
+0001B2                00431 L25
+0001B2 9604           00432           bcf PBSTATE,OLDPB
+                      00433         ;ENDIF_
+0001B4                00434 L26
+                      00435         
+0001B4 0012           00436         return
+                      00437 
+                      00438 ;;;;;;;;;;;;;;;;;; ReadPot ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00439 ;
+                      00440 ; This subroutine reads the value of the POT using the A/D and stores it in POTVALUE.
+                      00441 ; It also complements POTVALUE and stores it in POTVALUECOMP.  Next, depending on 
+                      00442 ; whether or not PORTA, RA1 (LED D6) is low or high, either POTVALUE or POTVALUECOMP
+                      00443 ; is displayed respectively.
+                      00444 
+0001B6                00445 ReadPot
+0001B6 84C2           00446         bsf ADCON0,GO_DONE             ; Begins the A/D conversion.
+                      00447         ;REPEAT_
+0001B8                00448 L27
+                      00449         ;UNTIL_ ADCON0,GO_DONE == 0    ; Wait until A/D conversion is finished.
+0001B8 B4C2           00450         btfsc ADCON0,GO_DONE
+0001BA D7FE           00451         bra     L27
+0001BC                00452 RL27
+0001BC CFC4 F006      00453         movff ADRESH,POTVALUE          ; Move the upper byte from the A/D into POTVALUE.
+0001C0 50C4           00454         movf  ADRESH,W                 ; Perform 0xFF-POTVALUE and store it in POTVALUECOMP.
+0001C2 08FF           00455         sublw 0xff
+0001C4 6E07           00456         movwf POTVALUECOMP
+                      00457         MOVLF 0xC6,HEXSTR              ; Set the position of HEXSTR to the lower right hand corner of the LCD.
+0001C6 0EC6               M         movlw  0xC6
+0001C8 6E0E               M         movwf  HEXSTR
+                      00458         
+                      00459         ;IF_ PORTA,RA1 == 1            ; Is D6 lit?
+0001CA A280           00460         btfss PORTA,RA1
+0001CC D003           00461         bra     L28
+0001CE C007 F012      00462           movff POTVALUECOMP, BYTE     ; .. then set BYTE to display the complement.
+                      00463         ;ELSE_ 
+0001D2 D002           00464         bra     L29
+0001D4                00465 L28
+0001D4 C006 F012      00466           movff POTVALUE, BYTE         ; .. otherwise display the value of the POT.
+                      00467         ;ENDIF_
+0001D8                00468 L29
+                      00469 
+0001D8 D801           00470         rcall HexDisplay               ; Converts BYTE into a displayable string and displays it.
+0001DA 0012           00471         return
+                      00472         
+                      00473 ;;;;;; HexDisplay subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00474 ;
+                      00475 ; This subroutine takes in BYTE and converts into an ASCII string in hex and stores it into
+                      00476 ; HEXSTR for display.
+                      00477 
+0001DC                00478 HexDisplay
+0001DC D808           00479         rcall ConvertLowerNibble       ; Converts lower nibble of BYTE to hex and stores it in W.
+0001DE 6E10           00480         movwf HEXSTR+2                 ; Move the ASCII value into the most significant byte of HEXSTR.
+                      00481 
+0001E0 3A12           00482         swapf BYTE,F                   ; Swap nibbles of BYTE to convert the upper nibble.
+                      00483 
+0001E2 D805           00484         rcall ConvertLowerNibble       ; Convert the old upper nibble of BYTE to hex and stores it in W.
+0001E4 6E0F           00485         movwf HEXSTR+1                 ; Move the ASCII value into the 2nd byte of HEXSTR.
+                      00486 
+0001E6 EE00 F00E      00487         lfsr  0, HEXSTR                ; Loads address of HEXSTR to fsr0 to display HEXSTR.
+0001EA DF8A           00488         rcall DisplayV                 ; Call DisplayV to display HEXSTR on LCD.
+0001EC 0012           00489         return
+                      00490 
+                      00491 ;;;;;; ConvertLowerNibble subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00492 ;
+                      00493 ; This subroutine takes lower nibble of BYTE and converts it into its ASCII hex value.
+                      00494 
+0001EE                00495 ConvertLowerNibble                              
+0001EE 5012           00496         movf BYTE, W                   ; Loads BYTE into W.
+0001F0 0B0F           00497         andlw B'00001111'              ; Masks out the upper nibble.
+0001F2 0809           00498         sublw 0x09                     ; Test if it's greater than 9. 
+                      00499         ;IF_ .N.                       ; If, after masking, it is greater than 9, then it is a letter.
+0001F4 E704           00500         bnn     L30
+0001F6 5012           00501           movf BYTE,W                  ; Load BYTE into W.
+0001F8 0B0F           00502           andlw B'00001111'            ; Mask out the upper nibble.
+0001FA 0F37           00503           addlw 0x37                   ; Add offset to obtain the letter's ASCII value.
+                      00504         ;ELSE_                         ; If it's less than 9, then it's a number.
+0001FC D003           00505         bra     L31
+0001FE                00506 L30
+0001FE 5012           00507           movf BYTE,W
+000200 0B0F           00508           andlw B'00001111'
+000202 0930           00509           iorlw 0x30                   ; Then add offset of 30 to obtain the numeric's ASCII value.
+                      00510         ;ENDIF_
+000204                00511 L31
+000204 0012           00512         return  
+                      00513 
+                      00514 
+                      00515 ;;;;;;; PBToggle subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00516 ;
+                      00517 ; This subroutine tests ISA and ISC to see if SW3 has been pressed and toggles the state
+                      00518 ; of LED D6 accordingly.
+                      00519 
+000206                00520 PBToggle
+                      00521         ;IF_ PBSTATE,ISA == 1          ; If ISA = 1, the button's been pressed.
+000206 A204           00522         btfss PBSTATE,ISA
+000208 D026           00523         bra     L32
+                      00524 
+00020A 2E17           00525         decfsz CNT_TITLE                ;decrement TITLE counter, skip if zero
+00020C D002           00526         bra tro_L0
+00020E 0E04           00527         movlw D'4'
+000210 6E17           00528         movwf CNT_TITLE
+000212                00529 tro_L0
+000212 0E01           00530         movlw D'1'
+000214 5C17           00531         subwf CNT_TITLE, 0
+000216 E00A           00532         bz tro_L1                       ;was 1
+000218 0E02           00533         movlw D'2'
+00021A 5C17           00534         subwf CNT_TITLE, 0
+00021C E00C           00535         bz tro_L2                       ;was 2
+00021E 0E03           00536         movlw D'3'
+000220 5C17           00537         subwf CNT_TITLE, 0
+000222 E00E           00538         bz tro_L3                       ;was 3
+000224 0E04           00539         movlw D'4'
+000226 5C17           00540         subwf CNT_TITLE, 0
+000228 E010           00541         bz tro_L4                       ;was 4
+00022A D015           00542         bra tro_L6
+                      00543 
+00022C                00544 tro_L1
+                      00545 
+                      00546         POINT NAME                     ; Display name on the LCD.
+                          M         MOVLF  high NAME,       TBLPTRH
+00022C 0E02               M         movlw  high NAME
+00022E 6EF7               M         movwf  TBLPTRH
+                          M         MOVLF  low NAME,        TBLPTRL
+000230 0EFA               M         movlw  low NAME
+000232 6EF6               M         movwf  TBLPTRL
+000234 D00F           00547         bra tro_L5
+000236                00548 tro_L2
+                      00549         POINT TITLE1
+                          M         MOVLF  high TITLE1,     TBLPTRH
+000236 0E03               M         movlw  high TITLE1
+000238 6EF7               M         movwf  TBLPTRH
+                          M         MOVLF  low TITLE1,      TBLPTRL
+00023A 0E12               M         movlw  low TITLE1
+00023C 6EF6               M         movwf  TBLPTRL
+00023E D00A           00550         bra tro_L5
+000240                00551 tro_L3
+                      00552         POINT TITLE2
+                          M         MOVLF  high TITLE2,     TBLPTRH
+000240 0E03               M         movlw  high TITLE2
+000242 6EF7               M         movwf  TBLPTRH
+                          M         MOVLF  low TITLE2,      TBLPTRL
+000244 0E0A               M         movlw  low TITLE2
+000246 6EF6               M         movwf  TBLPTRL
+000248 D005           00553         bra tro_L5
+00024A                00554 tro_L4
+                      00555         POINT TITLE3
+                          M         MOVLF  high TITLE3,     TBLPTRH
+00024A 0E03               M         movlw  high TITLE3
+00024C 6EF7               M         movwf  TBLPTRH
+                          M         MOVLF  low TITLE3,      TBLPTRL
+00024E 0E02               M         movlw  low TITLE3
+000250 6EF6               M         movwf  TBLPTRL
+000252 D000           00556         bra tro_L5
+000254                00557 tro_L5  
+000254 DF42           00558         rcall DisplayC
+000256                00559 tro_L6
+                      00560 
+                      00561         ;ENDIF_
+000256                00562 L32
+                      00563 
+                      00564         ;IF_ PBSTATE,ISC == 1          ; Or if ISC = 1, the button's been pressed.
+000256 A004           00565         btfss PBSTATE,ISC
+000258 D001           00566         bra     L33
+00025A 7280           00567           btg PORTA,RA1                ; Then toggle RA1(LED D6).
+                      00568         ;ENDIF_
+00025C                00569 L33
+00025C 0012           00570         return
+                      00571 
+                      00572 ;;;;;;; RPGCounter subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00573 ;
+                      00574 ; In this subroutine, the value of DELRPG is added to VALUE and shown on LCD.
+                      00575 
+00025E                00576 RPGCounter
+                      00577 
+                      00578 
+00025E 5002           00579         movf  DELRPG,W
+000260 2618           00580         addwf VALUE
+                      00581         MOVLF 0x86,HEXSTR              ; Load cursor position byte (upper right) to HEXSTR.
+000262 0E86               M         movlw  0x86
+000264 6E0E               M         movwf  HEXSTR
+000266 C018 F012      00582         movff VALUE,BYTE               ; Load the converted result to BYTE for display.
+00026A DFB8           00583         rcall HexDisplay               ; Call HexDisplay to display the result in hex.
+                      00584 
+00026C 0012           00585         return
+                      00586 
+                      00587 ;;;;;;; PotToDAC subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00588 ;
+                      00589 ; This subroutine deals with DAC(D/A Converter) It takes the value of POT
+                      00590 ; and sends it to the DAC-A and the complement of the value to the DAC-B.  
+                      00591 
+00026E                00592 PotToDAC
+                      00593                                        ; Instructions dealing with DAC.
+00026E 9082           00594         bcf   PORTC,RC0                ; Clear PORTC,RC0 to change DAC output.
+                      00595         MOVLF 0x21,BYTE                ; Load control byte 0x21 to BYTE for the output to go to DAC-A.
+000270 0E21               M         movlw  0x21
+000272 6E12               M         movwf  BYTE
+000274 D80D           00596         rcall SPItransfer              ; Transfer what is in BYTE.
+000276 C006 F012      00597         movff POTVALUE,BYTE            ; Load the byte to be converted.
+00027A D80A           00598         rcall SPItransfer                      
+00027C 8082           00599         bsf   PORTC,RC0                ; Set RC0 to finish transfer.
+                      00600 
+00027E 9082           00601         bcf   PORTC,RC0
+                      00602         MOVLF 0x22,BYTE                ; Load control byte 0x22 to BYTE for the output to go to DAC-B.
+000280 0E22               M         movlw  0x22
+000282 6E12               M         movwf  BYTE
+000284 D805           00603         rcall SPItransfer
+000286 C007 F012      00604         movff POTVALUECOMP,BYTE
+00028A D802           00605         rcall SPItransfer
+00028C 8082           00606         bsf   PORTC,RC0                        
+                      00607         
+                      00608          
+00028E 0012           00609         return
+                      00610 
+                      00611 ;;;;;;;; SPI, D/A muunnin;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00612 
+000290                00613 SPItransfer
+000290 969E           00614                         bcf PIR1,SSPIF             ;Clear PIR1,SSPIF to ready for; transfer.
+000292 C014 FFC9      00615                         movff SPIDATA,SSPBUF       ; Initiates write when anything is
+000296 010F           00616                         BANKSEL SSPSTAT            ; placed in SSPBUF.
+000298                00617 Wait_SPI                               ; Wait until transfer is finished.
+000298 A69E           00618                         btfss PIR1,SSPIF
+00029A D7FE           00619                         bra Wait_SPI
+00029C 010F           00620                         BANKSEL SSPBUF
+00029E 50C9           00621                         movf SSPBUF,W
+0002A0 0012           00622                         return
+                      00623 
+                      00624 
+                      00625 
+                      00626 ;;;;;;;;ADC_muunnos  muunnin;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00627 
+0002A2                00628 ADC_muunnos
+0002A2 80C2           00629                         bsf ADCON0, ADON        ;avaa ADC
+0002A4 84C2           00630                         bsf ADCON0,GO           ;käynnistä muunnos
+0002A6                00631 ADC_tee
+0002A6 B4C2           00632                         btfsc ADCON0, GO        ;GO muuttuu nollaksi kun käännös on tehty
+0002A8 D7FE           00633                         bra ADC_tee
+0002AA CFC3 F015      00634                         movff ADRESL, VOLT      ;ADRESH on muuntimen 8 ylintä bittiä, muunnos on 10 bittinen
+                      00635                                                                 ;VOLT on itse määritelty muuttuja, jonne muutokset tulos tallennetaa
+                            n
+0002AE 90C2           00636                         bcf ADCON0, ADON        ;sulje ADC
+0002B0 0012           00637                         return
+                      00638         
+                      00639 ;;;;;; DecDisplay subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00640 ;
+                      00641 ; This subroutine takes BYTE, converts it to an ASCII decimal value of BYTE and displays
+                      00642 ; it.  This function does not set the positioning code.  For the temperature, the code
+                      00643 ; is constant, so the position is initialized in the Initial subroutine.
+                      00644 
+0002B2                00645 TempDisplay
+                      00646 
+0002B2 EE00 F00A      00647         lfsr 0, TEMPSTR+2              ; Loads FSR0 register to BYTESTR + 2.
+                      00648 
+                      00649         ;REPEAT_
+0002B6                00650 L44
+0002B6 6AE8           00651           clrf  WREG                   ; Clear work register.
+0002B8 C012 F01B      00652           movff BYTE, AARGB0           ; Move BYTE to AARGB0 to be divided.
+                      00653           MOVLF D'10', BARGB0          ; Divide BYTE by 10.
+0002BC 0E0A               M         movlw  D'10'
+0002BE 6E24               M         movwf  BARGB0
+0002C0 EC16 F004      00654           call  FXD0808U               ; Perform division.
+0002C4 501F           00655           movf  REMB0, W               ; Move remainder to work register.
+                      00656           
+0002C6 0930           00657           iorlw 0x30                   ; Add offset to convert to an ASCII decimal number.
+0002C8 6EED           00658           movwf POSTDEC0               ; Load the ASCII value to the string and move to next string byte.
+                      00659           
+0002CA C01B F012      00660           movff AARGB0, BYTE           ; Move result to divisor to be divided again.    
+0002CE 50E9           00661           movf  FSR0L,W                ; Done?
+0002D0 0808           00662           sublw low TEMPSTR
+                      00663         ;UNTIL_ .Z.                     
+0002D2 E1F1           00664         bnz     L44
+0002D4                00665 RL44
+                      00666         
+0002D4 EE00 F008      00667         lfsr 0, TEMPSTR                ; Set pointer to display temperature string: TEMPSTR.
+0002D8 DF13           00668         rcall   DisplayV               ; Call DisplayV to display temperature, a variable string.
+0002DA 0012           00669         return
+                      00670         
+                      00671 ;;;;;;; BlinkAlive subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00672 ;
+                      00673 ; This subroutine briefly blinks the LED next to the PIC every two-and-a-half
+                      00674 ; seconds.
+                      00675 
+0002DC                00676 BlinkAlive
+0002DC 8880           00677         bsf  PORTA,RA4                 ; Turn off LED.
+0002DE 0601           00678         decf ALIVECNT,F                ; Decrement loop counter and return if not zero.
+                      00679         ;IF_  .Z.
+0002E0 E103           00680         bnz     L45
+                      00681           MOVLF 250,ALIVECNT           ; Reinitialize BLNKCNT.
+0002E2 0EFA               M         movlw  250
+0002E4 6E01               M         movwf  ALIVECNT
+0002E6 9880           00682           bcf   PORTA,RA4              ; Turn on LED for ten milliseconds every 2.5 sec.
+                      00683         ;ENDIF_
+0002E8                00684 L45
+0002E8 0012           00685         return
+                      00686 
+                      00687 ;;;;;;; LoopTime subroutine ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00688 ;
+                      00689 ;Gives a 10ms looptime by using Timer1 and comparing it to 25,000.
+                      00690 
+0002EA                00691 LoopTime
+                      00692         ;REPEAT_                       ; Repeat until TIMER1 has reached 25,000. 
+0002EA                00693 L46
+                      00694         ;UNTIL_ PIR1, CCP1IF == 1              
+0002EA A49E           00695         btfss PIR1,CCP1IF
+0002EC D7FE           00696         bra     L46
+0002EE                00697 RL46
+0002EE 949E           00698         bcf    PIR1, CCP1IF            ; When it has, reset it to start over.
+0002F0 0012           00699         return
+                      00700 
+                      00701 ;;;;;;; Constant strings ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00702 
+0002F2 3233 0128 060C 00703 LCDstr  db  0x33,0x32,0x28,0x01,0x0c,0x06,0x00  ; Initialization string for LCD.
+       0000 
+0002FA 4580 5454 315F 00704 NAME    db  0x80,'E','T','T','_','1',' ',0x00   ; Declaration of name string on LCD (max 6 chars).
+       0020 
+000302 4280 3A79 2020 00705 TITLE3  db  0x80,'B','y',':',' ',' ',' ',0x00   ; All strings must be of same lenght, 
+       0020 
+00030A 7480 6165 736E 00706 TITLE2  db  0x80,'t','e','a','n','s','a',0x00   ; else the last letters of previous line
+       0061 
+000312 4A80 6E61 3530 00707 TITLE1  db  0x80,'J','a','n','0','5',' ',0x00   ; will remain on the screen...
+       0020 
+                      00708 
+                      00709         #include c:\math18\FXD2416U.INC
+                      00001 ;;;;; FXD2416U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; 24/16 Bit Unsigned Fixed Point Divide 24/16 -> 24.16
+                      00004 ;
+                      00005 ;   Input:  24 bit unsigned fixed point dividend in AARGB0, AARGB1, AARGB2
+                      00006 ;           16 bit unsigned fixed point divisor in BARGB0, BARGB1
+                      00007 ;
+                      00008 ;   Use:    CALL  FXD2416U
+                      00009 ;
+                      00010 ;   Output: 24 bit unsigned fixed point quotient in AARGB0, AARGB1, AARGB2
+                      00011 ;           16 bit unsigned fixed point remainder in REMB0, REMB1
+                      00012 ;
+                      00013 ;   Result: AARG, REM  <--  AARG / BARG
+                      00014 ;
+                      00015 ;   Memory: Prog  
+                      00016 ;           Data
+                      00017 ;
+                      00018 ;   Timing: Min  
+                      00019 ;           Max  
+                      00020 ;           Avg  
+                      00021 ;
+                      00022 ;   (100,000 Trials)
+                      00023 ;
+                      00024 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00025 
+                      00026         IFNDEF _FXD2416U
+                      00027         #DEFINE _FXD2416U
+                      00028         #INCLUDE <C:\MATH18\FXD2408U.INC>
+                      00001 ;;;;; FXD2408U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; 24/08 Bit Unsigned Fixed Point Divide 24/08 -> 24.08
+                      00004 ;
+                      00005 ;   Input:  24 bit unsigned fixed point dividend in AARGB0, AARGB1, AARGB2
+                      00006 ;            8 bit unsigned fixed point divisor in BARGB0
+                      00007 ;
+                      00008 ;   Use:    CALL  FXD2408U
+                      00009 ;
+                      00010 ;   Output: 24 bit unsigned fixed point quotient in AARGB0, AARGB1, AARGB2
+                      00011 ;            8 bit unsigned fixed point remainder in REMB0
+                      00012 ;
+                      00013 ;   Result: AARG, REM  <--  AARG / BARG
+                      00014 ;
+                      00015 ;   Memory: Prog  (TBL256 + UTILS + FXD1608U)
+                      00016 ;           Data 14 (AARGB3..0 + BARGB3..0 + CARGB2 + REMB1..0 + TEMPB2..0)
+                      00017 ;
+                      00018 ;   Timing: Min  
+                      00019 ;           Max  
+                      00020 ;           Avg  
+                      00021 ;
+                      00022 ;   (100,000 Trials)
+                      00023 ;
+                      00024 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00025 
+                      00026         IFNDEF _FXD2408U
+                      00027         #DEFINE _FXD2408U
+                      00028         #INCLUDE <C:\MATH18\FXD1608U.INC>
+                      00001 ;;;;; FXD1608U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; 16/8 Bit Unsigned Fixed Point Divide 16/08 -> 16.08
+                      00004 ;
+                      00005 ;   Input:  16 bit unsigned fixed point dividend in AARGB0, AARGB1
+                      00006 ;            8 bit unsigned fixed point divisor in BARGB0
+                      00007 ;
+                      00008 ;   Use:    CALL  FXD1608U
+                      00009 ;
+                      00010 ;   Output: 16 bit unsigned fixed point quotient in AARGB0, AARGB1
+                      00011 ;            8 bit unsigned fixed point remainder in REMB0
+                      00012 ;
+                      00013 ;   Result: AARG, REM  <--  AARG / BARG
+                      00014 ;
+                      00015 ;   Memory: Prog  
+                      00016 ;           Data 
+                      00017 ;
+                      00018 ;   Timing: Min  
+                      00019 ;           Max  
+                      00020 ;           Avg  
+                      00021 ;
+                      00022 ;   (100,000 Trials)
+                      00023 ;
+                      00024 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00025 
+                      00026         IFNDEF _FXD1608U
+                      00027         #DEFINE _FXD1608U
+                      00028         #INCLUDE <C:\MATH18\TBL256.INC>
+                      00001 ;;;;; TBL256.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; The table IBXTBL256 is used by all routines and consists of 16-bit
+                      00004 ; upper bound approximations to the reciprocal of BARGB0.
+                      00005 ;
+                      00006 ;   Memory: Prog 
+                      00007 ;
+                      00008 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00009 
+                      00010         IFNDEF _TBL256
+                      00011         #DEFINE _TBL256
+                      00012 
+00031A                00013 IBXTBL256
+00031A 0000           00014         DATA 0x0000
+00031C 0001           00015         DATA 0x0001
+00031E 8001           00016         DATA 0x8001
+000320 5556           00017         DATA 0x5556
+000322 4001           00018         DATA 0x4001
+000324 3334           00019         DATA 0x3334
+000326 2AAB           00020         DATA 0x2AAB
+000328 2493           00021         DATA 0x2493
+00032A 2001           00022         DATA 0x2001
+00032C 1C72           00023         DATA 0x1C72
+00032E 199A           00024         DATA 0x199A
+000330 1746           00025         DATA 0x1746
+000332 1556           00026         DATA 0x1556
+000334 13B2           00027         DATA 0x13B2
+000336 124A           00028         DATA 0x124A
+000338 1112           00029         DATA 0x1112
+00033A 1001           00030         DATA 0x1001
+00033C 0F10           00031         DATA 0x0F10
+00033E 0E39           00032         DATA 0x0E39
+000340 0D7A           00033         DATA 0x0D7A
+000342 0CCD           00034         DATA 0x0CCD
+000344 0C31           00035         DATA 0x0C31
+000346 0BA3           00036         DATA 0x0BA3
+000348 0B22           00037         DATA 0x0B22
+00034A 0AAB           00038         DATA 0x0AAB
+00034C 0A3E           00039         DATA 0x0A3E
+00034E 09D9           00040         DATA 0x09D9
+000350 097C           00041         DATA 0x097C
+000352 0925           00042         DATA 0x0925
+000354 08D4           00043         DATA 0x08D4
+000356 0889           00044         DATA 0x0889
+000358 0843           00045         DATA 0x0843
+00035A 0801           00046         DATA 0x0801
+00035C 07C2           00047         DATA 0x07C2
+00035E 0788           00048         DATA 0x0788
+000360 0751           00049         DATA 0x0751
+000362 071D           00050         DATA 0x071D
+000364 06EC           00051         DATA 0x06EC
+000366 06BD           00052         DATA 0x06BD
+000368 0691           00053         DATA 0x0691
+00036A 0667           00054         DATA 0x0667
+00036C 063F           00055         DATA 0x063F
+00036E 0619           00056         DATA 0x0619
+000370 05F5           00057         DATA 0x05F5
+000372 05D2           00058         DATA 0x05D2
+000374 05B1           00059         DATA 0x05B1
+000376 0591           00060         DATA 0x0591
+000378 0573           00061         DATA 0x0573
+00037A 0556           00062         DATA 0x0556
+00037C 053A           00063         DATA 0x053A
+00037E 051F           00064         DATA 0x051F
+000380 0506           00065         DATA 0x0506
+000382 04ED           00066         DATA 0x04ED
+000384 04D5           00067         DATA 0x04D5
+000386 04BE           00068         DATA 0x04BE
+000388 04A8           00069         DATA 0x04A8
+00038A 0493           00070         DATA 0x0493
+00038C 047E           00071         DATA 0x047E
+00038E 046A           00072         DATA 0x046A
+000390 0457           00073         DATA 0x0457
+000392 0445           00074         DATA 0x0445
+000394 0433           00075         DATA 0x0433
+000396 0422           00076         DATA 0x0422
+000398 0411           00077         DATA 0x0411
+00039A 0401           00078         DATA 0x0401
+00039C 03F1           00079         DATA 0x03F1
+00039E 03E1           00080         DATA 0x03E1
+0003A0 03D3           00081         DATA 0x03D3
+0003A2 03C4           00082         DATA 0x03C4
+0003A4 03B6           00083         DATA 0x03B6
+0003A6 03A9           00084         DATA 0x03A9
+0003A8 039C           00085         DATA 0x039C
+0003AA 038F           00086         DATA 0x038F
+0003AC 0382           00087         DATA 0x0382
+0003AE 0376           00088         DATA 0x0376
+0003B0 036A           00089         DATA 0x036A
+0003B2 035F           00090         DATA 0x035F
+0003B4 0354           00091         DATA 0x0354
+0003B6 0349           00092         DATA 0x0349
+0003B8 033E           00093         DATA 0x033E
+0003BA 0334           00094         DATA 0x0334
+0003BC 032A           00095         DATA 0x032A
+0003BE 0320           00096         DATA 0x0320
+0003C0 0316           00097         DATA 0x0316
+0003C2 030D           00098         DATA 0x030D
+0003C4 0304           00099         DATA 0x0304
+0003C6 02FB           00100         DATA 0x02FB
+0003C8 02F2           00101         DATA 0x02F2
+0003CA 02E9           00102         DATA 0x02E9
+0003CC 02E1           00103         DATA 0x02E1
+0003CE 02D9           00104         DATA 0x02D9
+0003D0 02D1           00105         DATA 0x02D1
+0003D2 02C9           00106         DATA 0x02C9
+0003D4 02C1           00107         DATA 0x02C1
+0003D6 02BA           00108         DATA 0x02BA
+0003D8 02B2           00109         DATA 0x02B2
+0003DA 02AB           00110         DATA 0x02AB
+0003DC 02A4           00111         DATA 0x02A4
+0003DE 029D           00112         DATA 0x029D
+0003E0 0296           00113         DATA 0x0296
+0003E2 0290           00114         DATA 0x0290
+0003E4 0289           00115         DATA 0x0289
+0003E6 0283           00116         DATA 0x0283
+0003E8 027D           00117         DATA 0x027D
+0003EA 0277           00118         DATA 0x0277
+0003EC 0271           00119         DATA 0x0271
+0003EE 026B           00120         DATA 0x026B
+0003F0 0265           00121         DATA 0x0265
+0003F2 025F           00122         DATA 0x025F
+0003F4 025A           00123         DATA 0x025A
+0003F6 0254           00124         DATA 0x0254
+0003F8 024F           00125         DATA 0x024F
+0003FA 024A           00126         DATA 0x024A
+0003FC 0244           00127         DATA 0x0244
+0003FE 023F           00128         DATA 0x023F
+000400 023A           00129         DATA 0x023A
+000402 0235           00130         DATA 0x0235
+000404 0231           00131         DATA 0x0231
+000406 022C           00132         DATA 0x022C
+000408 0227           00133         DATA 0x0227
+00040A 0223           00134         DATA 0x0223
+00040C 021E           00135         DATA 0x021E
+00040E 021A           00136         DATA 0x021A
+000410 0215           00137         DATA 0x0215
+000412 0211           00138         DATA 0x0211
+000414 020D           00139         DATA 0x020D
+000416 0209           00140         DATA 0x0209
+000418 0205           00141         DATA 0x0205
+00041A 0201           00142         DATA 0x0201
+00041C 01FD           00143         DATA 0x01FD
+00041E 01F9           00144         DATA 0x01F9
+000420 01F5           00145         DATA 0x01F5
+000422 01F1           00146         DATA 0x01F1
+000424 01ED           00147         DATA 0x01ED
+000426 01EA           00148         DATA 0x01EA
+000428 01E6           00149         DATA 0x01E6
+00042A 01E2           00150         DATA 0x01E2
+00042C 01DF           00151         DATA 0x01DF
+00042E 01DB           00152         DATA 0x01DB
+000430 01D8           00153         DATA 0x01D8
+000432 01D5           00154         DATA 0x01D5
+000434 01D1           00155         DATA 0x01D1
+000436 01CE           00156         DATA 0x01CE
+000438 01CB           00157         DATA 0x01CB
+00043A 01C8           00158         DATA 0x01C8
+00043C 01C4           00159         DATA 0x01C4
+00043E 01C1           00160         DATA 0x01C1
+000440 01BE           00161         DATA 0x01BE
+000442 01BB           00162         DATA 0x01BB
+000444 01B8           00163         DATA 0x01B8
+000446 01B5           00164         DATA 0x01B5
+000448 01B3           00165         DATA 0x01B3
+00044A 01B0           00166         DATA 0x01B0
+00044C 01AD           00167         DATA 0x01AD
+00044E 01AA           00168         DATA 0x01AA
+000450 01A7           00169         DATA 0x01A7
+000452 01A5           00170         DATA 0x01A5
+000454 01A2           00171         DATA 0x01A2
+000456 019F           00172         DATA 0x019F
+000458 019D           00173         DATA 0x019D
+00045A 019A           00174         DATA 0x019A
+00045C 0198           00175         DATA 0x0198
+00045E 0195           00176         DATA 0x0195
+000460 0193           00177         DATA 0x0193
+000462 0190           00178         DATA 0x0190
+000464 018E           00179         DATA 0x018E
+000466 018B           00180         DATA 0x018B
+000468 0189           00181         DATA 0x0189
+00046A 0187           00182         DATA 0x0187
+00046C 0184           00183         DATA 0x0184
+00046E 0182           00184         DATA 0x0182
+000470 0180           00185         DATA 0x0180
+000472 017E           00186         DATA 0x017E
+000474 017B           00187         DATA 0x017B
+000476 0179           00188         DATA 0x0179
+000478 0177           00189         DATA 0x0177
+00047A 0175           00190         DATA 0x0175
+00047C 0173           00191         DATA 0x0173
+00047E 0171           00192         DATA 0x0171
+000480 016F           00193         DATA 0x016F
+000482 016D           00194         DATA 0x016D
+000484 016B           00195         DATA 0x016B
+000486 0169           00196         DATA 0x0169
+000488 0167           00197         DATA 0x0167
+00048A 0165           00198         DATA 0x0165
+00048C 0163           00199         DATA 0x0163
+00048E 0161           00200         DATA 0x0161
+000490 015F           00201         DATA 0x015F
+000492 015D           00202         DATA 0x015D
+000494 015B           00203         DATA 0x015B
+000496 0159           00204         DATA 0x0159
+000498 0158           00205         DATA 0x0158
+00049A 0156           00206         DATA 0x0156
+00049C 0154           00207         DATA 0x0154
+00049E 0152           00208         DATA 0x0152
+0004A0 0151           00209         DATA 0x0151
+0004A2 014F           00210         DATA 0x014F
+0004A4 014D           00211         DATA 0x014D
+0004A6 014B           00212         DATA 0x014B
+0004A8 014A           00213         DATA 0x014A
+0004AA 0148           00214         DATA 0x0148
+0004AC 0147           00215         DATA 0x0147
+0004AE 0145           00216         DATA 0x0145
+0004B0 0143           00217         DATA 0x0143
+0004B2 0142           00218         DATA 0x0142
+0004B4 0140           00219         DATA 0x0140
+0004B6 013F           00220         DATA 0x013F
+0004B8 013D           00221         DATA 0x013D
+0004BA 013C           00222         DATA 0x013C
+0004BC 013A           00223         DATA 0x013A
+0004BE 0139           00224         DATA 0x0139
+0004C0 0137           00225         DATA 0x0137
+0004C2 0136           00226         DATA 0x0136
+0004C4 0134           00227         DATA 0x0134
+0004C6 0133           00228         DATA 0x0133
+0004C8 0131           00229         DATA 0x0131
+0004CA 0130           00230         DATA 0x0130
+0004CC 012F           00231         DATA 0x012F
+0004CE 012D           00232         DATA 0x012D
+0004D0 012C           00233         DATA 0x012C
+0004D2 012A           00234         DATA 0x012A
+0004D4 0129           00235         DATA 0x0129
+0004D6 0128           00236         DATA 0x0128
+0004D8 0126           00237         DATA 0x0126
+0004DA 0125           00238         DATA 0x0125
+0004DC 0124           00239         DATA 0x0124
+0004DE 0122           00240         DATA 0x0122
+0004E0 0121           00241         DATA 0x0121
+0004E2 0120           00242         DATA 0x0120
+0004E4 011F           00243         DATA 0x011F
+0004E6 011D           00244         DATA 0x011D
+0004E8 011C           00245         DATA 0x011C
+0004EA 011B           00246         DATA 0x011B
+0004EC 011A           00247         DATA 0x011A
+0004EE 0119           00248         DATA 0x0119
+0004F0 0117           00249         DATA 0x0117
+0004F2 0116           00250         DATA 0x0116
+0004F4 0115           00251         DATA 0x0115
+0004F6 0114           00252         DATA 0x0114
+0004F8 0113           00253         DATA 0x0113
+0004FA 0112           00254         DATA 0x0112
+0004FC 0110           00255         DATA 0x0110
+0004FE 010F           00256         DATA 0x010F
+000500 010E           00257         DATA 0x010E
+000502 010D           00258         DATA 0x010D
+000504 010C           00259         DATA 0x010C
+000506 010B           00260         DATA 0x010B
+000508 010A           00261         DATA 0x010A
+00050A 0109           00262         DATA 0x0109
+00050C 0108           00263         DATA 0x0108
+00050E 0107           00264         DATA 0x0107
+000510 0106           00265         DATA 0x0106
+000512 0105           00266         DATA 0x0105
+000514 0104           00267         DATA 0x0104
+000516 0103           00268         DATA 0x0103
+000518 0102           00269         DATA 0x0102
+00051A 0101           00270         DATA 0x0101
+                      00271 
+                      00272 
+                      00273         ENDIF
+                      00274 
+                      00275 
+                      00276 
+                      00029         #INCLUDE <C:\MATH18\UTILS.INC>
+                      00001 ;;;;; UTILS.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; Various utilities used by the math routines.
+                      00004 ;
+                      00005 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00006 
+                      00007         IFNDEF _UTILS
+                      00008         #DEFINE _UTILS
+                      00009 
+                      00010 ;;;;; DGETNRMD ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00011 ;
+                      00012 ; This routine returns the normalization factor in the W register
+                      00013 ;
+                      00014 ;   Memory: Prog 
+                      00015 ;           Data 7 (BARGB6..0)
+                      00016 
+00051C                00017 DGETNRMD
+00051C 0E10           00018         MOVLW  0x10
+00051E 6024           00019         CPFSLT  BARGB0
+000520 D008           00020         BRA  DGETNRMDH
+000522                00021 DGETNRMDL
+000522 B624           00022         BTFSC  BARGB0,3
+000524 0C10           00023         RETLW  0x10  
+000526 B424           00024         BTFSC  BARGB0,2
+000528 0C20           00025         RETLW  0x20  
+00052A B224           00026         BTFSC  BARGB0,1
+00052C 0C40           00027         RETLW  0x40
+00052E B024           00028         BTFSC  BARGB0,0
+000530 0C80           00029         RETLW  0x80
+000532                00030 DGETNRMDH
+000532 BC24           00031         BTFSC  BARGB0,6
+000534 0C02           00032         RETLW  0x02  
+000536 BA24           00033         BTFSC  BARGB0,5
+000538 0C04           00034         RETLW  0x04  
+00053A B824           00035         BTFSC  BARGB0,4
+00053C 0C08           00036         RETLW  0x08
+                      00037 
+                      00038 
+                      00039 ;;;;; DXZERO ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00040 ;
+                      00041 ; Routines for the trivial cases when the quotient is zero.
+                      00042 ;
+                      00043 ;   Memory: Prog 15
+                      00044 ;           Data 8 (AARGB3..0 + REMB3..0)
+                      00045 
+00053E                00046 D3232QZERO
+00053E C01E F022      00047         MOVFF  AARGB3,REMB3
+000542 6A1E           00048         CLRF  AARGB3
+000544                00049 D2424QZERO
+000544 C01D F021      00050         MOVFF  AARGB2,REMB2
+000548 6A1D           00051         CLRF  AARGB2
+00054A                00052 D1616QZERO
+00054A C01C F020      00053         MOVFF  AARGB1,REMB1
+00054E 6A1C           00054         CLRF  AARGB1
+000550 C01B F01F      00055         MOVFF  AARGB0,REMB0
+000554 6A1B           00056         CLRF  AARGB0
+                      00057 
+000556 0C00           00058         RETLW  0x00
+                      00059 
+000558                00060 DREMZERO8
+000558 6A1F           00061         CLRF  REMB0
+00055A 0C00           00062         RETLW  0x00
+                      00063 
+                      00064 
+                      00065         ENDIF
+                      00066 
+                      00067 
+                      00068 
+                      00030 
+00055C                00031 FXD1608U
+00055C 0E01           00032         MOVLW  0x01
+00055E 6424           00033         CPFSGT  BARGB0
+000560 EFAC F002      00034         GOTO  DREMZERO8
+                      00035 
+000564                00036 FXD1608U1
+000564 90D8           00037         BCF  _C
+000566 6AF7           00038         CLRF  TBLPTRH
+000568 3424           00039         RLCF  BARGB0,W
+00056A 36F7           00040         RLCF  TBLPTRH,F
+00056C 0F1B           00041         ADDLW  LOW (IBXTBL256+1)  ; access reciprocal table
+00056E 6EF6           00042         MOVWF  TBLPTRL
+000570 0E03           00043         MOVLW  HIGH (IBXTBL256)
+000572 22F7           00044         ADDWFC  TBLPTRH,F
+000574 000A           00045         TBLRD  *-
+                      00046 
+000576                00047 FXD1608U2
+000576 C01B F020      00048         MOVFF  AARGB0,REMB1
+00057A C01C F01F      00049         MOVFF  AARGB1,REMB0
+                      00050 
+00057E 50F5           00051         MOVF  TABLAT,W          ; estimate quotient
+000580 0220           00052         MULWF  REMB1
+000582 CFF4 F01B      00053         MOVFF  PRODH,AARGB0
+000586 CFF3 F01C      00054         MOVFF  PRODL,AARGB1
+                      00055 
+00058A 0009           00056         TBLRD  *+
+00058C 50F5           00057         MOVF  TABLAT,W
+00058E 021F           00058         MULWF  REMB0
+000590 CFF4 F01D      00059         MOVFF  PRODH,AARGB2
+                      00060 
+000594 0220           00061         MULWF  REMB1
+000596 50F3           00062         MOVF  PRODL,W
+000598 261D           00063         ADDWF  AARGB2,F
+00059A 50F4           00064         MOVF  PRODH,W
+00059C 221C           00065         ADDWFC  AARGB1,F
+00059E 6AE8           00066         CLRF  WREG
+0005A0 221B           00067         ADDWFC  AARGB0,F
+                      00068 
+0005A2 000A           00069         TBLRD  *-
+0005A4 50F5           00070         MOVF  TABLAT,W
+0005A6 021F           00071         MULWF  REMB0
+0005A8 50F3           00072         MOVF  PRODL,W
+0005AA 261D           00073         ADDWF  AARGB2,F
+0005AC 50F4           00074         MOVF  PRODH,W
+0005AE 221C           00075         ADDWFC  AARGB1,F
+0005B0 6AE8           00076         CLRF  WREG
+0005B2 221B           00077         ADDWFC  AARGB0,F
+                      00078         
+0005B4 5024           00079         MOVF  BARGB0,W
+0005B6 021C           00080         MULWF  AARGB1
+0005B8 CFF3 F01E      00081         MOVFF  PRODL,AARGB3
+0005BC CFF4 F01D      00082         MOVFF  PRODH,AARGB2
+0005C0 021B           00083         MULWF  AARGB0
+0005C2 50F3           00084         MOVF  PRODL,W
+0005C4 261D           00085         ADDWF  AARGB2,F
+                      00086 
+0005C6 501E           00087         MOVF  AARGB3,W          ; estimate remainder
+0005C8 5E1F           00088         SUBWF  REMB0,F
+0005CA 501D           00089         MOVF  AARGB2,W
+0005CC 5A20           00090         SUBWFB  REMB1,F
+                      00091 
+0005CE AE20           00092         BTFSS  REMB1,MSB        ; test remainder
+0005D0 0C00           00093         RETLW  0x00
+                      00094 
+0005D2 061C           00095         DECF  AARGB1,F
+0005D4 6AE8           00096         CLRF  WREG
+0005D6 5A1B           00097         SUBWFB  AARGB0,F
+                      00098 
+0005D8 5024           00099         MOVF  BARGB0,W
+0005DA 261F           00100         ADDWF  REMB0,F
+                      00101 
+0005DC 0C00           00102         RETLW  0x00
+                      00103 
+                      00104 
+                      00105         ENDIF
+                      00029 
+0005DE                00030 FXD2408U
+0005DE C01B F031      00031         MOVFF  AARGB0,TEMPB0
+0005E2 C01C F032      00032         MOVFF  AARGB1,TEMPB1
+0005E6 C01D F033      00033         MOVFF  AARGB2,TEMPB2
+                      00034 
+0005EA ECAE F002      00035         CALL  FXD1608U
+                      00036 
+0005EE C01B F031      00037         MOVFF  AARGB0,TEMPB0
+0005F2 C01C F032      00038         MOVFF  AARGB1,TEMPB1
+                      00039 
+0005F6 C033 F01C      00040         MOVFF  TEMPB2,AARGB1
+0005FA C01F F01B      00041         MOVFF  REMB0,AARGB0
+                      00042 
+0005FE ECAE F002      00043         CALL  FXD1608U
+                      00044 
+000602 C01C F01D      00045         MOVFF  AARGB1,AARGB2
+000606 C032 F01C      00046         MOVFF  TEMPB1,AARGB1
+00060A C031 F01B      00047         MOVFF  TEMPB0,AARGB0
+                      00048 
+00060E 0C00           00049         RETLW  0x00
+                      00050 
+                      00051 
+                      00052         ENDIF
+                      00029         #INCLUDE <C:\MATH18\FXD1616U.INC>
+                      00001 ;;;;; FXD1616U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; 16/16 Bit Unsigned Fixed Point Divide 16/16 -> 16.16
+                      00004 ;
+                      00005 ;   Input:  16 bit unsigned fixed point dividend in AARGB0, AARGB1
+                      00006 ;           16 bit unsigned fixed point divisor in BARGB0, BARGB1
+                      00007 ;
+                      00008 ;   Use:    CALL  FXD1616U
+                      00009 ;
+                      00010 ;   Output: 16 bit unsigned fixed point quotient in AARGB0, AARGB1
+                      00011 ;           16 bit unsigned fixed point remainder in REMB0, REMB1
+                      00012 ;
+                      00013 ;   Result: AARG, REM  <--  AARG / BARG
+                      00014 ;
+                      00015 ;   Memory: Prog  (TBL256 + UTILS + FXD1608U)
+                      00016 ;           Data 13 (AARGB3..0 + BARGB3..0 + CARGB2 + REMB1..0 + TEMPB1..0)
+                      00017 ;
+                      00018 ;   Timing: Min  
+                      00019 ;           Max  
+                      00020 ;           Avg  
+                      00021 ;
+                      00022 ;   (100,000 Trials)
+                      00023 ;
+                      00024 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00025 
+                      00026         IFNDEF _FXD1616U
+                      00027         #DEFINE _FXD1616U
+                      00028         #INCLUDE <C:\MATH18\FXD1608U.INC>
+                      00106 ;;;;; FXD1608U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00107 ;
+                      00108 ; 16/8 Bit Unsigned Fixed Point Divide 16/08 -> 16.08
+                      00109 ;
+                      00110 ;   Input:  16 bit unsigned fixed point dividend in AARGB0, AARGB1
+                      00111 ;            8 bit unsigned fixed point divisor in BARGB0
+                      00112 ;
+                      00113 ;   Use:    CALL  FXD1608U
+                      00114 ;
+                      00115 ;   Output: 16 bit unsigned fixed point quotient in AARGB0, AARGB1
+                      00116 ;            8 bit unsigned fixed point remainder in REMB0
+                      00117 ;
+                      00118 ;   Result: AARG, REM  <--  AARG / BARG
+                      00119 ;
+                      00120 ;   Memory: Prog  
+                      00121 ;           Data 
+                      00122 ;
+                      00123 ;   Timing: Min  
+                      00124 ;           Max  
+                      00125 ;           Avg  
+                      00126 ;
+                      00127 ;   (100,000 Trials)
+                      00128 ;
+                      00129 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00130 
+                      00131         IFNDEF _FXD1608U
+                      00132         #DEFINE _FXD1608U
+                      00133         #INCLUDE <C:\MATH18\TBL256.INC>
+                      00134         #INCLUDE <C:\MATH18\UTILS.INC>
+                      00135 
+                      00136 FXD1608U
+                      00137         MOVLW  0x01
+                      00138         CPFSGT  BARGB0
+                      00139         GOTO  DREMZERO8
+                      00140 
+                      00141 FXD1608U1
+                      00142         BCF  _C
+                      00143         CLRF  TBLPTRH
+                      00144         RLCF  BARGB0,W
+                      00145         RLCF  TBLPTRH,F
+                      00146         ADDLW  LOW (IBXTBL256+1)  ; access reciprocal table
+                      00147         MOVWF  TBLPTRL
+                      00148         MOVLW  HIGH (IBXTBL256)
+                      00149         ADDWFC  TBLPTRH,F
+                      00150         TBLRD  *-
+                      00151 
+                      00152 FXD1608U2
+                      00153         MOVFF  AARGB0,REMB1
+                      00154         MOVFF  AARGB1,REMB0
+                      00155 
+                      00156         MOVF  TABLAT,W          ; estimate quotient
+                      00157         MULWF  REMB1
+                      00158         MOVFF  PRODH,AARGB0
+                      00159         MOVFF  PRODL,AARGB1
+                      00160 
+                      00161         TBLRD  *+
+                      00162         MOVF  TABLAT,W
+                      00163         MULWF  REMB0
+                      00164         MOVFF  PRODH,AARGB2
+                      00165 
+                      00166         MULWF  REMB1
+                      00167         MOVF  PRODL,W
+                      00168         ADDWF  AARGB2,F
+                      00169         MOVF  PRODH,W
+                      00170         ADDWFC  AARGB1,F
+                      00171         CLRF  WREG
+                      00172         ADDWFC  AARGB0,F
+                      00173 
+                      00174         TBLRD  *-
+                      00175         MOVF  TABLAT,W
+                      00176         MULWF  REMB0
+                      00177         MOVF  PRODL,W
+                      00178         ADDWF  AARGB2,F
+                      00179         MOVF  PRODH,W
+                      00180         ADDWFC  AARGB1,F
+                      00181         CLRF  WREG
+                      00182         ADDWFC  AARGB0,F
+                      00183         
+                      00184         MOVF  BARGB0,W
+                      00185         MULWF  AARGB1
+                      00186         MOVFF  PRODL,AARGB3
+                      00187         MOVFF  PRODH,AARGB2
+                      00188         MULWF  AARGB0
+                      00189         MOVF  PRODL,W
+                      00190         ADDWF  AARGB2,F
+                      00191 
+                      00192         MOVF  AARGB3,W          ; estimate remainder
+                      00193         SUBWF  REMB0,F
+                      00194         MOVF  AARGB2,W
+                      00195         SUBWFB  REMB1,F
+                      00196 
+                      00197         BTFSS  REMB1,MSB        ; test remainder
+                      00198         RETLW  0x00
+                      00199 
+                      00200         DECF  AARGB1,F
+                      00201         CLRF  WREG
+                      00202         SUBWFB  AARGB0,F
+                      00203 
+                      00204         MOVF  BARGB0,W
+                      00205         ADDWF  REMB0,F
+                      00206 
+                      00207         RETLW  0x00
+                      00208 
+                      00209 
+                      00210         ENDIF
+                      00029 
+000610                00030 FXD1616U
+000610 6624           00031         TSTFSZ  BARGB0
+000612 D008           00032         BRA  D1616B0GT0
+000614 C025 F024      00033         MOVFF  BARGB1,BARGB0
+000618 ECAE F002      00034         CALL  FXD1608U
+00061C C01F F020      00035         MOVFF  REMB0,REMB1
+000620 6A1F           00036         CLRF  REMB0
+                      00037 
+000622 0C00           00038         RETLW  0x00
+                      00039 
+000624                00040 D1616B0GT0
+000624 5024           00041         MOVF  BARGB0,W
+000626 5C1B           00042         SUBWF  AARGB0,W
+000628 A0D8           00043         BTFSS  _C
+00062A EFA5 F002      00044         GOTO  D1616QZERO
+00062E A4D8           00045         BTFSS  _Z
+000630 D005           00046         BRA  D1616AGEB
+                      00047 
+000632 5025           00048         MOVF  BARGB1,W
+000634 5C1C           00049         SUBWF  AARGB1,W
+000636 A0D8           00050         BTFSS  _C
+000638 EFA5 F002      00051         GOTO  D1616QZERO
+                      00052 
+00063C                00053 D1616AGEB
+00063C C01B F031      00054         MOVFF  AARGB0,TEMPB0
+000640 C01C F032      00055         MOVFF  AARGB1,TEMPB1
+                      00056 
+000644 C01C F02B      00057         MOVFF  AARGB1,CARGB2
+000648 C01B F01C      00058         MOVFF  AARGB0,AARGB1
+00064C 6A1B           00059         CLRF  AARGB0
+                      00060 
+00064E C024 F026      00061         MOVFF  BARGB0,BARGB2
+000652 C025 F027      00062         MOVFF  BARGB1,BARGB3
+                      00063 
+000656 BE24           00064         BTFSC  BARGB0,MSB
+000658 D01D           00065         BRA  D1616UNRMOK
+                      00066 
+00065A 5024           00067         MOVF  BARGB0,W
+00065C 46E8           00068         RLNCF  WREG,F
+00065E 0F1D           00069         ADDLW  LOW (IBXTBL256+3)  ; access reciprocal table
+000660 6EF6           00070         MOVWF  TBLPTRL
+000662 0E03           00071         MOVLW  HIGH (IBXTBL256)
+000664 6AF7           00072         CLRF  TBLPTRH
+000666 22F7           00073         ADDWFC  TBLPTRH,F
+000668 0008           00074         TBLRD  *
+                      00075 
+00066A 50F5           00076         MOVF  TABLAT,W          ; normalize
+00066C 0227           00077         MULWF  BARGB3
+00066E CFF3 F025      00078         MOVFF  PRODL,BARGB1
+000672 CFF4 F024      00079         MOVFF  PRODH,BARGB0
+000676 0226           00080         MULWF  BARGB2
+000678 50F3           00081         MOVF  PRODL,W
+00067A 2624           00082         ADDWF  BARGB0,F
+                      00083 
+00067C 50F5           00084         MOVF  TABLAT,W
+00067E 0232           00085         MULWF  TEMPB1
+000680 CFF3 F02B      00086         MOVFF  PRODL,CARGB2
+000684 CFF4 F01C      00087         MOVFF  PRODH,AARGB1
+000688 0231           00088         MULWF  TEMPB0
+00068A 50F3           00089         MOVF  PRODL,W
+00068C 261C           00090         ADDWF  AARGB1,F
+00068E 6A1B           00091         CLRF  AARGB0
+000690 50F4           00092         MOVF  PRODH,W
+000692 221B           00093         ADDWFC  AARGB0,F
+                      00094 
+000694                00095 D1616UNRMOK
+000694 ECB2 F002      00096         CALL  FXD1608U1         ; estimate quotient digit
+                      00097 
+000698 501C           00098         MOVF  AARGB1,W
+00069A 0225           00099         MULWF  BARGB1
+                      00100 
+00069C 50F3           00101         MOVF  PRODL,W
+00069E 5C2B           00102         SUBWF  CARGB2,W
+0006A0 50F4           00103         MOVF  PRODH,W
+0006A2 581F           00104         SUBWFB  REMB0,W
+                      00105 
+0006A4 A0D8           00106         BTFSS  _C               ; test
+0006A6 061C           00107         DECF  AARGB1,F
+                      00108 
+0006A8                00109 D1616UQOK
+0006A8 501C           00110         MOVF  AARGB1,W          ; calculate remainder
+0006AA 0227           00111         MULWF  BARGB3
+0006AC 50F3           00112         MOVF  PRODL,W
+0006AE 5E32           00113         SUBWF  TEMPB1,F
+0006B0 50F4           00114         MOVF  PRODH,W
+0006B2 5A31           00115         SUBWFB  TEMPB0,F
+                      00116 
+0006B4 501C           00117         MOVF  AARGB1,W
+0006B6 0226           00118         MULWF  BARGB2
+0006B8 50F3           00119         MOVF  PRODL,W
+0006BA 5E31           00120         SUBWF  TEMPB0,F
+                      00121 
+                      00122 ; This test does not appear to be necessary in the 16 bit case, but
+                      00123 ; is included here in the event that a case appears after testing.
+                      00124 
+                      00125 ;  BTFSS  TEMPB0,MSB  ; test
+                      00126 ;  GOTO  D1616QOK
+                      00127 ;  DECF  AARGB1
+                      00128 
+                      00129 ;  MOVF  BARGB3,W
+                      00130 ;  ADDWF  TEMPB1
+                      00131 ;  MOVF  BARGB2,W
+                      00132 ;  ADDWFC  TEMPB0
+                      00133 
+0006BC                00134 D1616QOK
+0006BC C031 F01F      00135         MOVFF  TEMPB0,REMB0
+0006C0 C032 F020      00136         MOVFF  TEMPB1,REMB1
+                      00137 
+0006C4 0C00           00138         RETLW  0x00
+                      00139 
+                      00140 
+                      00141         ENDIF
+                      00030 
+0006C6                00031 FXD2416U
+0006C6 6A1F           00032         CLRF  REMB0
+0006C8 6A20           00033         CLRF  REMB1
+0006CA 6AE8           00034         CLRF  WREG
+0006CC 6624           00035         TSTFSZ  BARGB0
+0006CE D008           00036         BRA  D2416BGT1
+0006D0 C025 F024      00037         MOVFF  BARGB1,BARGB0
+0006D4 ECEF F002      00038         CALL  FXD2408U
+0006D8 C01F F020      00039         MOVFF  REMB0,REMB1
+0006DC 6A1F           00040         CLRF  REMB0
+0006DE 0C00           00041         RETLW  0x00
+                      00042 
+0006E0                00043 D2416BGT1
+0006E0 621B           00044         CPFSEQ  AARGB0
+0006E2 D00C           00045         BRA  D2416AGTB
+0006E4 C01C F01B      00046         MOVFF  AARGB1,AARGB0
+0006E8 C01D F01C      00047         MOVFF  AARGB2,AARGB1
+0006EC EC08 F003      00048         CALL  FXD1616U
+                      00049         
+0006F0 C01C F01D      00050         MOVFF  AARGB1,AARGB2
+0006F4 C01B F01C      00051         MOVFF  AARGB0,AARGB1
+0006F8 6A1B           00052         CLRF  AARGB0
+0006FA 0C00           00053         RETLW  0x00
+0006FC                00054 D2416AGTB
+0006FC C01D F01E      00055         MOVFF  AARGB2,AARGB3
+000700 C01C F01D      00056         MOVFF  AARGB1,AARGB2
+000704 C01B F01C      00057         MOVFF  AARGB0,AARGB1
+000708 6A1B           00058         CLRF  AARGB0
+                      00059 
+00070A C01B F031      00060         MOVFF  AARGB0,TEMPB0
+00070E C01C F032      00061         MOVFF  AARGB1,TEMPB1
+000712 C01D F033      00062         MOVFF  AARGB2,TEMPB2
+000716 C01E F034      00063         MOVFF  AARGB3,TEMPB3
+                      00064 
+00071A 0E02           00065         MOVLW  0x02             ; set loop count
+00071C 6E1A           00066         MOVWF  AEXP
+                      00067 
+00071E 0E01           00068         MOVLW  0x01
+000720 6E2D           00069         MOVWF  ZARGB0
+                      00070 
+000722 BE24           00071         BTFSC  BARGB0,MSB
+000724 D01C           00072         BRA  D2416UNRMOK
+                      00073 
+000726 EC8E F002      00074         CALL  DGETNRMD          ; get normalization factor
+00072A 6E2D           00075         MOVWF  ZARGB0
+                      00076 
+00072C 0225           00077         MULWF  BARGB1
+00072E 5024           00078         MOVF  BARGB0,W
+000730 CFF3 F025      00079         MOVFF  PRODL,BARGB1
+000734 CFF4 F024      00080         MOVFF  PRODH,BARGB0
+000738 022D           00081         MULWF  ZARGB0
+00073A 50F3           00082         MOVF  PRODL,W
+00073C 2624           00083         ADDWF  BARGB0,F
+                      00084 
+00073E 502D           00085         MOVF  ZARGB0,W
+000740 021E           00086         MULWF  AARGB3
+000742 CFF3 F034      00087         MOVFF  PRODL,TEMPB3
+000746 CFF4 F033      00088         MOVFF  PRODH,TEMPB2
+00074A 021C           00089         MULWF  AARGB1
+00074C CFF3 F032      00090         MOVFF  PRODL,TEMPB1
+000750 CFF4 F031      00091         MOVFF  PRODH,TEMPB0
+000754 021D           00092         MULWF  AARGB2
+000756 50F3           00093         MOVF  PRODL,W
+000758 2633           00094         ADDWF  TEMPB2,F
+00075A 50F4           00095         MOVF  PRODH,W
+00075C 2632           00096         ADDWF  TEMPB1,F
+                      00097 
+00075E                00098 D2416UNRMOK
+00075E 90D8           00099         BCF  _C
+000760 6AF7           00100         CLRF  TBLPTRH
+000762 3424           00101         RLCF  BARGB0,W
+000764 36F7           00102         RLCF  TBLPTRH,F
+000766 0F1B           00103         ADDLW  LOW (IBXTBL256+1)  ; access reciprocal table
+000768 6EF6           00104         MOVWF  TBLPTRL
+00076A 0E03           00105         MOVLW  HIGH (IBXTBL256)
+00076C 22F7           00106         ADDWFC  TBLPTRH,F
+00076E 000A           00107         TBLRD  *-
+                      00108 
+000770                00109 D2416ULOOP
+000770 C031 F01B      00110         MOVFF  TEMPB0,AARGB0
+000774 C032 F01C      00111         MOVFF  TEMPB1,AARGB1
+                      00112 
+000778 ECBB F002      00113         CALL  FXD1608U2         ; estimate quotient digit
+                      00114 
+00077C A01B           00115         BTFSS  AARGB0,LSB
+00077E D008           00116         BRA  D2416UQTEST
+                      00117 
+000780 681C           00118         SETF  AARGB1
+000782 C032 F01F      00119         MOVFF  TEMPB1,REMB0
+000786 5024           00120         MOVF  BARGB0,W
+000788 261F           00121         ADDWF  REMB0,F
+                      00122 
+00078A B0D8           00123         BTFSC  _C
+00078C EFDD F003      00124         GOTO  D2416UQOK
+                      00125 
+000790                00126 D2416UQTEST
+000790 501C           00127         MOVF  AARGB1,W          ; test
+000792 0225           00128         MULWF  BARGB1
+                      00129 
+000794 50F3           00130         MOVF  PRODL,W
+000796 5C33           00131         SUBWF  TEMPB2,W
+000798 50F4           00132         MOVF  PRODH,W
+00079A 581F           00133         SUBWFB  REMB0,W
+                      00134 
+00079C B0D8           00135         BTFSC  _C
+00079E D00D           00136         BRA  D2416UQOK
+                      00137 
+0007A0 061C           00138         DECF  AARGB1,F
+                      00139 
+0007A2 5024           00140         MOVF  BARGB0,W
+0007A4 261F           00141         ADDWF  REMB0,F
+                      00142 
+0007A6 B0D8           00143         BTFSC  _C
+0007A8 D008           00144         BRA  D2416UQOK
+                      00145 
+0007AA 501C           00146         MOVF  AARGB1,W
+0007AC 0225           00147         MULWF  BARGB1
+                      00148 
+0007AE 50F3           00149         MOVF  PRODL,W
+0007B0 5C33           00150         SUBWF  TEMPB2,W
+0007B2 50F4           00151         MOVF  PRODH,W
+0007B4 581F           00152         SUBWFB  REMB0,W
+                      00153 
+0007B6 A0D8           00154         BTFSS  _C
+0007B8 061C           00155         DECF  AARGB1,F
+                      00156 
+0007BA                00157 D2416UQOK
+0007BA C01C F02E      00158         MOVFF  AARGB1,ZARGB1
+                      00159 
+0007BE 501C           00160         MOVF  AARGB1,W
+0007C0 0225           00161         MULWF  BARGB1
+0007C2 50F3           00162         MOVF  PRODL,W
+0007C4 5E33           00163         SUBWF  TEMPB2,F
+0007C6 50F4           00164         MOVF  PRODH,W
+0007C8 5A32           00165         SUBWFB  TEMPB1,F
+                      00166 
+0007CA 501C           00167         MOVF  AARGB1,W
+0007CC 0224           00168         MULWF  BARGB0
+0007CE 50F3           00169         MOVF  PRODL,W
+0007D0 5E32           00170         SUBWF  TEMPB1,F
+0007D2 50F4           00171         MOVF  PRODH,W
+0007D4 5A31           00172         SUBWFB  TEMPB0,F
+                      00173 
+0007D6 AE31           00174         BTFSS  TEMPB0,MSB       ; test
+0007D8 D005           00175         BRA  D2416QOK
+0007DA 062E           00176         DECF  ZARGB1,F
+                      00177 
+0007DC 5025           00178         MOVF  BARGB1,W
+0007DE 2633           00179         ADDWF  TEMPB2,F
+0007E0 5024           00180         MOVF  BARGB0,W
+0007E2 2232           00181         ADDWFC  TEMPB1,F
+                      00182 
+0007E4                00183 D2416QOK
+0007E4 4E1A           00184         DCFSNZ  AEXP,F          ; is loop done?
+0007E6 D009           00185         BRA  D2416FIXREM
+                      00186 
+0007E8 C02E F02F      00187         MOVFF  ZARGB1,ZARGB2
+                      00188 
+0007EC C032 F031      00189         MOVFF  TEMPB1,TEMPB0
+0007F0 C033 F032      00190         MOVFF  TEMPB2,TEMPB1
+0007F4 C034 F033      00191         MOVFF  TEMPB3,TEMPB2
+                      00192 
+0007F8 D7BB           00193         BRA  D2416ULOOP  
+                      00194 
+0007FA                00195 D2416FIXREM
+0007FA C032 F01F      00196         MOVFF  TEMPB1,REMB0
+0007FE C033 F020      00197         MOVFF  TEMPB2,REMB1
+                      00198 
+000802 0E01           00199         MOVLW  0x01
+000804 642D           00200         CPFSGT  ZARGB0
+000806 D00C           00201         BRA  D2416REMOK
+000808 402D           00202         RRNCF  ZARGB0,W
+00080A 6E24           00203         MOVWF  BARGB0
+00080C EC8E F002      00204         CALL  DGETNRMD
+                      00205 
+000810 0233           00206         MULWF  TEMPB2
+000812 CFF4 F020      00207         MOVFF  PRODH,REMB1
+000816 0232           00208         MULWF  TEMPB1
+000818 50F3           00209         MOVF  PRODL,W
+00081A 2620           00210         ADDWF  REMB1,F
+00081C CFF4 F01F      00211         MOVFF  PRODH,REMB0
+                      00212 
+000820                00213 D2416REMOK
+000820 6A1B           00214         CLRF  AARGB0
+000822 C02E F01D      00215         MOVFF  ZARGB1,AARGB2
+000826 C02F F01C      00216         MOVFF  ZARGB2,AARGB1
+                      00217 
+00082A 0C00           00218         RETLW  0x00
+                      00219 
+                      00220 
+                      00221         ENDIF
+                      00710         #include c:\math18\FXD0808U.INC
+                      00001 ;;;;; FXD0808U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; 8/8 Bit Unsigned Fixed Point Divide 08/08 -> 08.08
+                      00004 ;
+                      00005 ;   Input:  8 bit unsigned fixed point dividend in AARGB0
+                      00006 ;           8 bit unsigned fixed point divisor in BARGB0
+                      00007 ;
+                      00008 ;   Use:    CALL  FXD0808U
+                      00009 ;
+                      00010 ;   Output: 8 bit unsigned fixed point quotient in AARGB0
+                      00011 ;           8 bit unsigned fixed point remainder in REMB0
+                      00012 ;
+                      00013 ;   Result: AARG, REM  <--  AARG / BARG
+                      00014 ;
+                      00015 ;   Memory: Prog  
+                      00016 ;           Data 
+                      00017 ;
+                      00018 ;   Timing: Min  
+                      00019 ;           Max  
+                      00020 ;           Avg  
+                      00021 ;
+                      00022 ;   (65,536 Trials)
+                      00023 ;
+                      00024 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00025 
+                      00026         IFNDEF _FXD0808U
+                      00027         #DEFINE _FXD0808U
+                      00028         #INCLUDE <C:\MATH18\TBL256.INC>
+                      00277 ;;;;; TBL256.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00278 ;
+                      00279 ; The table IBXTBL256 is used by all routines and consists of 16-bit
+                      00280 ; upper bound approximations to the reciprocal of BARGB0.
+                      00281 ;
+                      00282 ;   Memory: Prog 
+                      00283 ;
+                      00284 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00285 
+                      00286         IFNDEF _TBL256
+                      00287         #DEFINE _TBL256
+                      00288 
+                      00289 IBXTBL256
+                      00290         DATA 0x0000
+                      00291         DATA 0x0001
+                      00292         DATA 0x8001
+                      00293         DATA 0x5556
+                      00294         DATA 0x4001
+                      00295         DATA 0x3334
+                      00296         DATA 0x2AAB
+                      00297         DATA 0x2493
+                      00298         DATA 0x2001
+                      00299         DATA 0x1C72
+                      00300         DATA 0x199A
+                      00301         DATA 0x1746
+                      00302         DATA 0x1556
+                      00303         DATA 0x13B2
+                      00304         DATA 0x124A
+                      00305         DATA 0x1112
+                      00306         DATA 0x1001
+                      00307         DATA 0x0F10
+                      00308         DATA 0x0E39
+                      00309         DATA 0x0D7A
+                      00310         DATA 0x0CCD
+                      00311         DATA 0x0C31
+                      00312         DATA 0x0BA3
+                      00313         DATA 0x0B22
+                      00314         DATA 0x0AAB
+                      00315         DATA 0x0A3E
+                      00316         DATA 0x09D9
+                      00317         DATA 0x097C
+                      00318         DATA 0x0925
+                      00319         DATA 0x08D4
+                      00320         DATA 0x0889
+                      00321         DATA 0x0843
+                      00322         DATA 0x0801
+                      00323         DATA 0x07C2
+                      00324         DATA 0x0788
+                      00325         DATA 0x0751
+                      00326         DATA 0x071D
+                      00327         DATA 0x06EC
+                      00328         DATA 0x06BD
+                      00329         DATA 0x0691
+                      00330         DATA 0x0667
+                      00331         DATA 0x063F
+                      00332         DATA 0x0619
+                      00333         DATA 0x05F5
+                      00334         DATA 0x05D2
+                      00335         DATA 0x05B1
+                      00336         DATA 0x0591
+                      00337         DATA 0x0573
+                      00338         DATA 0x0556
+                      00339         DATA 0x053A
+                      00340         DATA 0x051F
+                      00341         DATA 0x0506
+                      00342         DATA 0x04ED
+                      00343         DATA 0x04D5
+                      00344         DATA 0x04BE
+                      00345         DATA 0x04A8
+                      00346         DATA 0x0493
+                      00347         DATA 0x047E
+                      00348         DATA 0x046A
+                      00349         DATA 0x0457
+                      00350         DATA 0x0445
+                      00351         DATA 0x0433
+                      00352         DATA 0x0422
+                      00353         DATA 0x0411
+                      00354         DATA 0x0401
+                      00355         DATA 0x03F1
+                      00356         DATA 0x03E1
+                      00357         DATA 0x03D3
+                      00358         DATA 0x03C4
+                      00359         DATA 0x03B6
+                      00360         DATA 0x03A9
+                      00361         DATA 0x039C
+                      00362         DATA 0x038F
+                      00363         DATA 0x0382
+                      00364         DATA 0x0376
+                      00365         DATA 0x036A
+                      00366         DATA 0x035F
+                      00367         DATA 0x0354
+                      00368         DATA 0x0349
+                      00369         DATA 0x033E
+                      00370         DATA 0x0334
+                      00371         DATA 0x032A
+                      00372         DATA 0x0320
+                      00373         DATA 0x0316
+                      00374         DATA 0x030D
+                      00375         DATA 0x0304
+                      00376         DATA 0x02FB
+                      00377         DATA 0x02F2
+                      00378         DATA 0x02E9
+                      00379         DATA 0x02E1
+                      00380         DATA 0x02D9
+                      00381         DATA 0x02D1
+                      00382         DATA 0x02C9
+                      00383         DATA 0x02C1
+                      00384         DATA 0x02BA
+                      00385         DATA 0x02B2
+                      00386         DATA 0x02AB
+                      00387         DATA 0x02A4
+                      00388         DATA 0x029D
+                      00389         DATA 0x0296
+                      00390         DATA 0x0290
+                      00391         DATA 0x0289
+                      00392         DATA 0x0283
+                      00393         DATA 0x027D
+                      00394         DATA 0x0277
+                      00395         DATA 0x0271
+                      00396         DATA 0x026B
+                      00397         DATA 0x0265
+                      00398         DATA 0x025F
+                      00399         DATA 0x025A
+                      00400         DATA 0x0254
+                      00401         DATA 0x024F
+                      00402         DATA 0x024A
+                      00403         DATA 0x0244
+                      00404         DATA 0x023F
+                      00405         DATA 0x023A
+                      00406         DATA 0x0235
+                      00407         DATA 0x0231
+                      00408         DATA 0x022C
+                      00409         DATA 0x0227
+                      00410         DATA 0x0223
+                      00411         DATA 0x021E
+                      00412         DATA 0x021A
+                      00413         DATA 0x0215
+                      00414         DATA 0x0211
+                      00415         DATA 0x020D
+                      00416         DATA 0x0209
+                      00417         DATA 0x0205
+                      00418         DATA 0x0201
+                      00419         DATA 0x01FD
+                      00420         DATA 0x01F9
+                      00421         DATA 0x01F5
+                      00422         DATA 0x01F1
+                      00423         DATA 0x01ED
+                      00424         DATA 0x01EA
+                      00425         DATA 0x01E6
+                      00426         DATA 0x01E2
+                      00427         DATA 0x01DF
+                      00428         DATA 0x01DB
+                      00429         DATA 0x01D8
+                      00430         DATA 0x01D5
+                      00431         DATA 0x01D1
+                      00432         DATA 0x01CE
+                      00433         DATA 0x01CB
+                      00434         DATA 0x01C8
+                      00435         DATA 0x01C4
+                      00436         DATA 0x01C1
+                      00437         DATA 0x01BE
+                      00438         DATA 0x01BB
+                      00439         DATA 0x01B8
+                      00440         DATA 0x01B5
+                      00441         DATA 0x01B3
+                      00442         DATA 0x01B0
+                      00443         DATA 0x01AD
+                      00444         DATA 0x01AA
+                      00445         DATA 0x01A7
+                      00446         DATA 0x01A5
+                      00447         DATA 0x01A2
+                      00448         DATA 0x019F
+                      00449         DATA 0x019D
+                      00450         DATA 0x019A
+                      00451         DATA 0x0198
+                      00452         DATA 0x0195
+                      00453         DATA 0x0193
+                      00454         DATA 0x0190
+                      00455         DATA 0x018E
+                      00456         DATA 0x018B
+                      00457         DATA 0x0189
+                      00458         DATA 0x0187
+                      00459         DATA 0x0184
+                      00460         DATA 0x0182
+                      00461         DATA 0x0180
+                      00462         DATA 0x017E
+                      00463         DATA 0x017B
+                      00464         DATA 0x0179
+                      00465         DATA 0x0177
+                      00466         DATA 0x0175
+                      00467         DATA 0x0173
+                      00468         DATA 0x0171
+                      00469         DATA 0x016F
+                      00470         DATA 0x016D
+                      00471         DATA 0x016B
+                      00472         DATA 0x0169
+                      00473         DATA 0x0167
+                      00474         DATA 0x0165
+                      00475         DATA 0x0163
+                      00476         DATA 0x0161
+                      00477         DATA 0x015F
+                      00478         DATA 0x015D
+                      00479         DATA 0x015B
+                      00480         DATA 0x0159
+                      00481         DATA 0x0158
+                      00482         DATA 0x0156
+                      00483         DATA 0x0154
+                      00484         DATA 0x0152
+                      00485         DATA 0x0151
+                      00486         DATA 0x014F
+                      00487         DATA 0x014D
+                      00488         DATA 0x014B
+                      00489         DATA 0x014A
+                      00490         DATA 0x0148
+                      00491         DATA 0x0147
+                      00492         DATA 0x0145
+                      00493         DATA 0x0143
+                      00494         DATA 0x0142
+                      00495         DATA 0x0140
+                      00496         DATA 0x013F
+                      00497         DATA 0x013D
+                      00498         DATA 0x013C
+                      00499         DATA 0x013A
+                      00500         DATA 0x0139
+                      00501         DATA 0x0137
+                      00502         DATA 0x0136
+                      00503         DATA 0x0134
+                      00504         DATA 0x0133
+                      00505         DATA 0x0131
+                      00506         DATA 0x0130
+                      00507         DATA 0x012F
+                      00508         DATA 0x012D
+                      00509         DATA 0x012C
+                      00510         DATA 0x012A
+                      00511         DATA 0x0129
+                      00512         DATA 0x0128
+                      00513         DATA 0x0126
+                      00514         DATA 0x0125
+                      00515         DATA 0x0124
+                      00516         DATA 0x0122
+                      00517         DATA 0x0121
+                      00518         DATA 0x0120
+                      00519         DATA 0x011F
+                      00520         DATA 0x011D
+                      00521         DATA 0x011C
+                      00522         DATA 0x011B
+                      00523         DATA 0x011A
+                      00524         DATA 0x0119
+                      00525         DATA 0x0117
+                      00526         DATA 0x0116
+                      00527         DATA 0x0115
+                      00528         DATA 0x0114
+                      00529         DATA 0x0113
+                      00530         DATA 0x0112
+                      00531         DATA 0x0110
+                      00532         DATA 0x010F
+                      00533         DATA 0x010E
+                      00534         DATA 0x010D
+                      00535         DATA 0x010C
+                      00536         DATA 0x010B
+                      00537         DATA 0x010A
+                      00538         DATA 0x0109
+                      00539         DATA 0x0108
+                      00540         DATA 0x0107
+                      00541         DATA 0x0106
+                      00542         DATA 0x0105
+                      00543         DATA 0x0104
+                      00544         DATA 0x0103
+                      00545         DATA 0x0102
+                      00546         DATA 0x0101
+                      00547 
+                      00548 
+                      00549         ENDIF
+                      00550 
+                      00551 
+                      00552 
+                      00029         #INCLUDE <C:\MATH18\UTILS.INC>
+                      00069 ;;;;; UTILS.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00070 ;
+                      00071 ; Various utilities used by the math routines.
+                      00072 ;
+                      00073 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00074 
+                      00075         IFNDEF _UTILS
+                      00076         #DEFINE _UTILS
+                      00077 
+                      00078 ;;;;; DGETNRMD ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00079 ;
+                      00080 ; This routine returns the normalization factor in the W register
+                      00081 ;
+                      00082 ;   Memory: Prog 
+                      00083 ;           Data 7 (BARGB6..0)
+                      00084 
+                      00085 DGETNRMD
+                      00086         MOVLW  0x10
+                      00087         CPFSLT  BARGB0
+                      00088         BRA  DGETNRMDH
+                      00089 DGETNRMDL
+                      00090         BTFSC  BARGB0,3
+                      00091         RETLW  0x10  
+                      00092         BTFSC  BARGB0,2
+                      00093         RETLW  0x20  
+                      00094         BTFSC  BARGB0,1
+                      00095         RETLW  0x40
+                      00096         BTFSC  BARGB0,0
+                      00097         RETLW  0x80
+                      00098 DGETNRMDH
+                      00099         BTFSC  BARGB0,6
+                      00100         RETLW  0x02  
+                      00101         BTFSC  BARGB0,5
+                      00102         RETLW  0x04  
+                      00103         BTFSC  BARGB0,4
+                      00104         RETLW  0x08
+                      00105 
+                      00106 
+                      00107 ;;;;; DXZERO ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00108 ;
+                      00109 ; Routines for the trivial cases when the quotient is zero.
+                      00110 ;
+                      00111 ;   Memory: Prog 15
+                      00112 ;           Data 8 (AARGB3..0 + REMB3..0)
+                      00113 
+                      00114 D3232QZERO
+                      00115         MOVFF  AARGB3,REMB3
+                      00116         CLRF  AARGB3
+                      00117 D2424QZERO
+                      00118         MOVFF  AARGB2,REMB2
+                      00119         CLRF  AARGB2
+                      00120 D1616QZERO
+                      00121         MOVFF  AARGB1,REMB1
+                      00122         CLRF  AARGB1
+                      00123         MOVFF  AARGB0,REMB0
+                      00124         CLRF  AARGB0
+                      00125 
+                      00126         RETLW  0x00
+                      00127 
+                      00128 DREMZERO8
+                      00129         CLRF  REMB0
+                      00130         RETLW  0x00
+                      00131 
+                      00132 
+                      00133         ENDIF
+                      00134 
+                      00135 
+                      00136 
+                      00030 
+00082C                00031 FXD0808U
+00082C 0E01           00032         MOVLW  0x01
+00082E 6424           00033         CPFSGT  BARGB0
+000830 EFAC F002      00034         GOTO  DREMZERO8
+                      00035 
+000834 C01B F01F      00036         MOVFF  AARGB0,REMB0
+000838 5024           00037         MOVF  BARGB0,W
+00083A 601B           00038         CPFSLT  AARGB0
+00083C D002           00039         BRA  D0808U
+00083E 6A1B           00040         CLRF  AARGB0
+                      00041 
+000840 0C00           00042         RETLW  0x00
+                      00043 
+000842                00044 D0808U
+000842 90D8           00045         BCF  _C
+000844 6AF7           00046         CLRF  TBLPTRH
+000846 36E8           00047         RLCF  WREG,F
+000848 36F7           00048         RLCF  TBLPTRH,F
+00084A 0F1B           00049         ADDLW  LOW (IBXTBL256+1)  ; access reciprocal table
+00084C 6EF6           00050         MOVWF  TBLPTRL
+00084E 0E03           00051         MOVLW  HIGH (IBXTBL256)
+000850 22F7           00052         ADDWFC  TBLPTRH,F
+000852 000A           00053         TBLRD  *-
+                      00054 
+000854 50F5           00055         MOVF  TABLAT,W          ; calculate quotient
+000856 021F           00056         MULWF  REMB0
+000858 CFF4 F01B      00057         MOVFF  PRODH,AARGB0
+00085C CFF3 F01C      00058         MOVFF  PRODL,AARGB1
+000860 0008           00059         TBLRD  *
+000862 50F5           00060         MOVF  TABLAT,W
+000864 021F           00061         MULWF  REMB0
+000866 50F4           00062         MOVF  PRODH,W
+000868 261C           00063         ADDWF  AARGB1,F
+00086A 6AE8           00064         CLRF  WREG
+00086C 221B           00065         ADDWFC  AARGB0,F
+                      00066 
+00086E 5024           00067         MOVF  BARGB0,W          ; calculate remainder
+000870 021B           00068         MULWF  AARGB0
+                      00069 
+000872 50F3           00070         MOVF  PRODL,W
+000874 5E1F           00071         SUBWF  REMB0,F
+                      00072 
+000876 0C00           00073         RETLW  0x00
+                      00074 
+                      00075 
+                      00076         ENDIF
+                      00711         #include c:\math18\FXM1608U.INC
+                      00001 ;;;;; FXM1608U.INC ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 2001.09.07 ;;;;;
+                      00002 ;
+                      00003 ; 16x8 Bit Unsigned Fixed Point Multiply 16 x 08 -> 24
+                      00004 ;
+                      00005 ;   Input:  16 bit unsigned fixed point multiplicand in AARGB0
+                      00006 ;            8 bit unsigned fixed point multiplier in BARGB0
+                      00007 ;
+                      00008 ;   Use:    CALL  FXM1608U
+                      00009 ;
+                      00010 ;   Output: 24 bit unsigned fixed point product in AARGB0, AARGB1, AARGB2
+                      00011 ;
+                      00012 ;   Result: AARG  <--  AARG * BARG
+                      00013 ;
+                      00014 ;   Memory: Prog 
+                      00015 ;           Data 
+                      00016 ;
+                      00017 ;   Timing: Min  
+                      00018 ;           Max  
+                      00019 ;           Avg  
+                      00020 ;
+                      00021 ;   (100,000 Trials)
+                      00022 ;
+                      00023 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                      00024 
+                      00025         IFNDEF _FXM1608U
+                      00026         #DEFINE _FXM1608U
+                      00027 
+000878                00028 FXM1608U
+000878 5024           00029         MOVF  BARGB0,W
+00087A 021C           00030         MULWF  AARGB1
+00087C CFF4 F01C      00031         MOVFF  PRODH,AARGB1
+000880 CFF3 F01D      00032         MOVFF  PRODL,AARGB2
+000884 021B           00033         MULWF  AARGB0
+000886 CFF4 F01B      00034         MOVFF  PRODH,AARGB0
+00088A 50F3           00035         MOVF  PRODL,W
+00088C 261C           00036         ADDWF  AARGB1,F
+00088E 6AE8           00037         CLRF  WREG
+000890 221B           00038         ADDWFC  AARGB0,F
+                      00039 
+000892 0C00           00040         RETLW  0x00
+                      00041 
+                      00042 
+                      00043         ENDIF
+                      00712 
+                      00713         end
+
+Errors   :     0
+Warnings :     5 reported,     0 suppressed
+Messages :     0 reported,     0 suppressed
+
+

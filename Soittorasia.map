@@ -1,0 +1,257 @@
+MPLINK 4.38, Linker
+Linker Map File - Created Sun Jan 18 17:09:47 2015
+
+                                 Section Info
+                  Section       Type    Address   Location Size(Bytes)
+                ---------  ---------  ---------  ---------  ---------
+                   .org_0       code   0x000000    program   0x000000
+                   .org_1       code   0x000000    program   0x000006
+                   .org_2       code   0x000008    program   0x000004
+                   .org_3       code   0x000018    program   0x00087c
+.config_300000_SOITTORASIA.O       code   0x300000    program   0x000002
+.config_300002_SOITTORASIA.O       code   0x300002    program   0x000002
+.config_300004_SOITTORASIA.O       code   0x300004    program   0x000002
+.config_300006_SOITTORASIA.O       code   0x300006    program   0x000002
+
+
+
+                              Program Memory Usage 
+                               Start         End      
+                           ---------   ---------      
+                            0x000000    0x000005      
+                            0x000008    0x00000b      
+                            0x000018    0x000893      
+                            0x300000    0x300007      
+            2190 out of 33048 program addresses used, program memory utilization is 6%
+
+
+
+                              Symbols - Sorted by Name
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+              ADC_muunnos   0x0002a2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  ADC_tee   0x0002a6    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+               BlinkAlive   0x0002dc    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                CNTUPDATE   0x00015a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+       ConvertLowerNibble   0x0001ee    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   D0808U   0x000842    program     static c:\math18\FXD0808U.INC   
+                D1616AGEB   0x00063c    program     static C:\MATH18\FXD1616U.INC   
+               D1616B0GT0   0x000624    program     static C:\MATH18\FXD1616U.INC   
+                 D1616QOK   0x0006bc    program     static C:\MATH18\FXD1616U.INC   
+               D1616QZERO   0x00054a    program     static C:\MATH18\UTILS.INC      
+              D1616UNRMOK   0x000694    program     static C:\MATH18\FXD1616U.INC   
+                D1616UQOK   0x0006a8    program     static C:\MATH18\FXD1616U.INC   
+                D2416AGTB   0x0006fc    program     static c:\math18\FXD2416U.INC   
+                D2416BGT1   0x0006e0    program     static c:\math18\FXD2416U.INC   
+              D2416FIXREM   0x0007fa    program     static c:\math18\FXD2416U.INC   
+                 D2416QOK   0x0007e4    program     static c:\math18\FXD2416U.INC   
+               D2416REMOK   0x000820    program     static c:\math18\FXD2416U.INC   
+               D2416ULOOP   0x000770    program     static c:\math18\FXD2416U.INC   
+              D2416UNRMOK   0x00075e    program     static c:\math18\FXD2416U.INC   
+                D2416UQOK   0x0007ba    program     static c:\math18\FXD2416U.INC   
+              D2416UQTEST   0x000790    program     static c:\math18\FXD2416U.INC   
+               D2424QZERO   0x000544    program     static C:\MATH18\UTILS.INC      
+               D3232QZERO   0x00053e    program     static C:\MATH18\UTILS.INC      
+                 DGETNRMD   0x00051c    program     static C:\MATH18\UTILS.INC      
+                DGETNRMDH   0x000532    program     static C:\MATH18\UTILS.INC      
+                DGETNRMDL   0x000522    program     static C:\MATH18\UTILS.INC      
+                DREMZERO8   0x000558    program     static C:\MATH18\UTILS.INC      
+                 DisplayC   0x0000da    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 DisplayV   0x000100    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 FXD0808U   0x00082c    program     static c:\math18\FXD0808U.INC   
+                 FXD1608U   0x00055c    program     static C:\MATH18\FXD1608U.INC   
+                FXD1608U1   0x000564    program     static C:\MATH18\FXD1608U.INC   
+                FXD1608U2   0x000576    program     static C:\MATH18\FXD1608U.INC   
+                 FXD1616U   0x000610    program     static C:\MATH18\FXD1616U.INC   
+                 FXD2408U   0x0005de    program     static C:\MATH18\FXD2408U.INC   
+                 FXD2416U   0x0006c6    program     static c:\math18\FXD2416U.INC   
+                 FXM1608U   0x000878    program     static c:\math18\FXM1608U.INC   
+               HexDisplay   0x0001dc    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                IBXTBL256   0x00031a    program     static C:\MATH18\TBL256.INC     
+                  InitLCD   0x00009e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  Initial   0x000022    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L10   0x00013a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L11   0x000144    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L12   0x000146    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L13   0x000170    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L14   0x000172    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L15   0x00017e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L16   0x00017e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L17   0x000190    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L18   0x00018e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L19   0x00018e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L2   0x0000a2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L20   0x000192    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L21   0x0001a4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L22   0x0001a4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L23   0x0001a0    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L24   0x0001aa    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L25   0x0001b2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L26   0x0001b4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L27   0x0001b8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L28   0x0001d4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L29   0x0001d8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L3   0x0000b4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L30   0x0001fe    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L31   0x000204    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L32   0x000256    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L33   0x00025c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L4   0x0000d4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L44   0x0002b6    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L45   0x0002e8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L46   0x0002ea    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L5   0x0000e4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L6   0x0000e4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L7   0x000102    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L8   0x00015e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L9   0x000138    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   LCDstr   0x0002f2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 LoopTime   0x0002ea    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 Mainline   0x00001c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     NAME   0x0002fa    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 PBToggle   0x000206    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  Pbutton   0x000164    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 PotToDAC   0x00026e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL2   0x0000a8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     RL27   0x0001bc    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL3   0x0000ce    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL4   0x0000d8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     RL44   0x0002d4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     RL46   0x0002ee    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL6   0x0000fe    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL7   0x00011a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RPG   0x00011c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+               RPGCounter   0x00025e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  ReadPot   0x0001b6    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+              SPItransfer   0x000290    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   SetDAC   0x000092    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      T40   0x0000d0    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   TITLE1   0x000312    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   TITLE2   0x00030a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   TITLE3   0x000302    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+              TempDisplay   0x0002b2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 Wait_SPI   0x000298    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L0   0x000212    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L1   0x00022c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L2   0x000236    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L3   0x000240    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L4   0x00024a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L5   0x000254    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L6   0x000256    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+
+
+
+                              Symbols - Sorted by Address
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                 Mainline   0x00001c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  Initial   0x000022    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   SetDAC   0x000092    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  InitLCD   0x00009e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L2   0x0000a2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL2   0x0000a8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L3   0x0000b4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL3   0x0000ce    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      T40   0x0000d0    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L4   0x0000d4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL4   0x0000d8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 DisplayC   0x0000da    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L5   0x0000e4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L6   0x0000e4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL6   0x0000fe    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 DisplayV   0x000100    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L7   0x000102    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RL7   0x00011a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      RPG   0x00011c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L9   0x000138    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L10   0x00013a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L11   0x000144    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L12   0x000146    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                CNTUPDATE   0x00015a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                       L8   0x00015e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  Pbutton   0x000164    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L13   0x000170    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L14   0x000172    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L16   0x00017e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L15   0x00017e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L18   0x00018e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L19   0x00018e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L17   0x000190    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L20   0x000192    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L23   0x0001a0    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L21   0x0001a4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L22   0x0001a4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L24   0x0001aa    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L25   0x0001b2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L26   0x0001b4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  ReadPot   0x0001b6    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L27   0x0001b8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     RL27   0x0001bc    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L28   0x0001d4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L29   0x0001d8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+               HexDisplay   0x0001dc    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+       ConvertLowerNibble   0x0001ee    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L30   0x0001fe    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L31   0x000204    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 PBToggle   0x000206    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L0   0x000212    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L1   0x00022c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L2   0x000236    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L3   0x000240    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L4   0x00024a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L5   0x000254    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L32   0x000256    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   tro_L6   0x000256    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L33   0x00025c    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+               RPGCounter   0x00025e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 PotToDAC   0x00026e    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+              SPItransfer   0x000290    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 Wait_SPI   0x000298    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+              ADC_muunnos   0x0002a2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                  ADC_tee   0x0002a6    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+              TempDisplay   0x0002b2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L44   0x0002b6    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     RL44   0x0002d4    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+               BlinkAlive   0x0002dc    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L45   0x0002e8    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                      L46   0x0002ea    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                 LoopTime   0x0002ea    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     RL46   0x0002ee    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   LCDstr   0x0002f2    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                     NAME   0x0002fa    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   TITLE3   0x000302    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   TITLE2   0x00030a    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                   TITLE1   0x000312    program     static C:\Users\Matti\Documents\Soittorasia\Soittorasia.asm
+                IBXTBL256   0x00031a    program     static C:\MATH18\TBL256.INC     
+                 DGETNRMD   0x00051c    program     static C:\MATH18\UTILS.INC      
+                DGETNRMDL   0x000522    program     static C:\MATH18\UTILS.INC      
+                DGETNRMDH   0x000532    program     static C:\MATH18\UTILS.INC      
+               D3232QZERO   0x00053e    program     static C:\MATH18\UTILS.INC      
+               D2424QZERO   0x000544    program     static C:\MATH18\UTILS.INC      
+               D1616QZERO   0x00054a    program     static C:\MATH18\UTILS.INC      
+                DREMZERO8   0x000558    program     static C:\MATH18\UTILS.INC      
+                 FXD1608U   0x00055c    program     static C:\MATH18\FXD1608U.INC   
+                FXD1608U1   0x000564    program     static C:\MATH18\FXD1608U.INC   
+                FXD1608U2   0x000576    program     static C:\MATH18\FXD1608U.INC   
+                 FXD2408U   0x0005de    program     static C:\MATH18\FXD2408U.INC   
+                 FXD1616U   0x000610    program     static C:\MATH18\FXD1616U.INC   
+               D1616B0GT0   0x000624    program     static C:\MATH18\FXD1616U.INC   
+                D1616AGEB   0x00063c    program     static C:\MATH18\FXD1616U.INC   
+              D1616UNRMOK   0x000694    program     static C:\MATH18\FXD1616U.INC   
+                D1616UQOK   0x0006a8    program     static C:\MATH18\FXD1616U.INC   
+                 D1616QOK   0x0006bc    program     static C:\MATH18\FXD1616U.INC   
+                 FXD2416U   0x0006c6    program     static c:\math18\FXD2416U.INC   
+                D2416BGT1   0x0006e0    program     static c:\math18\FXD2416U.INC   
+                D2416AGTB   0x0006fc    program     static c:\math18\FXD2416U.INC   
+              D2416UNRMOK   0x00075e    program     static c:\math18\FXD2416U.INC   
+               D2416ULOOP   0x000770    program     static c:\math18\FXD2416U.INC   
+              D2416UQTEST   0x000790    program     static c:\math18\FXD2416U.INC   
+                D2416UQOK   0x0007ba    program     static c:\math18\FXD2416U.INC   
+                 D2416QOK   0x0007e4    program     static c:\math18\FXD2416U.INC   
+              D2416FIXREM   0x0007fa    program     static c:\math18\FXD2416U.INC   
+               D2416REMOK   0x000820    program     static c:\math18\FXD2416U.INC   
+                 FXD0808U   0x00082c    program     static c:\math18\FXD0808U.INC   
+                   D0808U   0x000842    program     static c:\math18\FXD0808U.INC   
+                 FXM1608U   0x000878    program     static c:\math18\FXM1608U.INC   
+
+
